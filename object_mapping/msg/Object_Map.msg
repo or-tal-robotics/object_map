@@ -1,1 +1,0 @@
-Object[] object_map
