@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<launch>
+
+<include file="$(find gazebo_demo)/launch/my_map.launch" />
+
+  <!-- send table urdf to param server -->
+  <param name="robot_description" command="$(find xacro)/xacro '$(find gazebo_demo)/urdf/ABot.urdf.xacro'" />
+
+  <!-- push table_description to factory and spawn robot in gazebo -->
+  <node name="spawn_ABot" pkg="gazebo_ros" type="spawn_model" args="-urdf -model simple_model -param robot_description" respawn="false" output="screen" />
+  <!--<node pkg="tf" type="static_transform_publisher" name="map_odom_static_broadcaster" args="0 0 0 0 0 0 map /odom 100" /> -->
+
+  <node pkg="tf" type="static_transform_publisher" name="world_map_static_broadcaster" args="0 0 0 1.57 0 0 world /map 10" />
+
+<node pkg="tf" type="static_transform_publisher" name="map_to_odom" 
+      args="0.0 0.0 0.0 0 0 0.0 /map /odom 10" />
+
+<node pkg="tf" type="static_transform_publisher" name="odom_to_basefootprint" 
+      args="0.0 0.0 0.0 0 0 0.0 /odom /base_footprint 10" />
+
+<node pkg="tf" type="static_transform_publisher" name="base_footprint_to_base_link" 
+      args="0.0 0.0 0.0 0 0 0.0 /base_footprint /base_link 10" />
+
+<node pkg="tf" type="static_transform_publisher" name="laser_static_broadcaster" args="0.15 0 0.2 0 0 0  /base_link /hokuyo_link 10" />
+<node pkg="robot_state_publisher" name="publisher_state_pub" type="robot_state_publisher">
+<param name="publish_frequency" value="10" />
+</node>
+
+</launch>

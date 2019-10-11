@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+
+<launch>
+
+<include file="$(find gazebo_demo)/launch/ABot.launch" />
+
+<include file="$(find gazebo_demo)/launch/joystick.launch" />
+
+</launch>
