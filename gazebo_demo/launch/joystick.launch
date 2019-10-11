@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+
+<launch>
+
+<node pkg="joy" name="joy_node" type="joy_node" output="screen" /> 
+
+<node pkg="gazebo_demo" name="joy" type="joystick_controler_new.py" output="screen" />
+
+</launch>
