@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+
+<launch>
+
+<include file="$(find gazebo_demo)/launch/empty_world.launch" >
+  <arg name="world_name" value="$(find gazebo_demo)/worlds/demo_world.world"/>
+</include>
+
+</launch>

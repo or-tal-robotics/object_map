@@ -1,8 +1,6 @@
 <?xml version="1.0"?>
 <launch>
 
-<include file="$(find gazebo_demo)/launch/ABot.launch" />
-
 <node pkg="hector_mapping" type="hector_mapping" name="hector_mapping" output="screen">
 
 <!-- Topic names -->

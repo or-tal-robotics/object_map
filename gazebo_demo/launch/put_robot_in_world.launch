@@ -1,13 +1,11 @@
 <?xml version="1.0"?>
 <launch>
 
-<include file="$(find gazebo_demo)/launch/my_map.launch" />
-
   <!-- send table urdf to param server -->
   <param name="robot_description" command="$(find xacro)/xacro '$(find gazebo_demo)/urdf/ABot.urdf.xacro'" />
 
   <!-- push table_description to factory and spawn robot in gazebo -->
-  <node name="spawn_ABot" pkg="gazebo_ros" type="spawn_model" args="-urdf -model simple_model -param robot_description" respawn="false" output="screen" />
+  <node name="spawn_ABot" pkg="gazebo_ros" type="spawn_model" args="-urdf -param robot_description -model ABot -x -4.88 -y -7.22 -z 0.2 -Y 1.53" respawn="false" output="screen" />
   <!--<node pkg="tf" type="static_transform_publisher" name="map_odom_static_broadcaster" args="0 0 0 0 0 0 map /odom 100" /> -->
 
   <node pkg="tf" type="static_transform_publisher" name="world_map_static_broadcaster" args="0 0 0 1.57 0 0 world /map 10" />

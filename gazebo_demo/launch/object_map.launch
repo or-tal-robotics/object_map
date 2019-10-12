@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<launch>
+<node pkg="joint_object_localizer" type="Object_Detection.py" name="object_detection_node" output="screen"/>
+
+<node pkg="object_detector_ssd_tf_ros" type="ssd_node.py" name="object_detector_ssd_node" output="screen"/>
+
+<node pkg="object_mapping" type="Object_Mapper.py" name="object_mapper_node" output="screen"/>
+
+
+</launch>
