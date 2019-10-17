@@ -44,7 +44,7 @@ cv_img = 0
 def img_callback (ros_img):
     global bridge, cv_img
     try: 
-        cv_img = bridge.imgmsg_to_cv2(ros_img,"rgb8")
+        cv_img = bridge.imgmsg_to_cv2(ros_img,"bgr8")
     except CvBridgeError as e:
         print (e)
 
@@ -54,7 +54,8 @@ rospy.init_node('ssd_node', anonymous = True)
 img_sub = rospy.Subscriber('camera/image_raw/', Image, img_callback)
 ros_img = rospy.wait_for_message('camera/image_raw/', Image)
 Im_outs_Pub = rospy.Publisher('im_info',SSD_Outputs)
-
+img_pub = rospy.Publisher('ssd_image_output',Image)
+rate = rospy.Rate(5)
 
 
 
@@ -111,10 +112,16 @@ while not rospy.is_shutdown():
         L_output.outputs.append(output)
         
     Im_outs_Pub.publish(L_output)  
-    cv2.imshow('SSD output', img)
-
-    
+    #cv2.imshow('SSD output', img)
+    msg_frame = bridge.cv2_to_imgmsg(img)
+    msg_frame.encoding = 'bgr8'
+    img_pub.publish(msg_frame)
+    rate.sleep()
+    '''
     if cv2.waitKey(1) == 27: 
         cam.release()
         cv2.destroyAllWindows()
         break  # esc to quit
+    '''
+
+    
