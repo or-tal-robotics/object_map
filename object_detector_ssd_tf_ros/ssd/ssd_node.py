@@ -44,7 +44,7 @@ cv_img = 0
 def img_callback (ros_img):
     global bridge, cv_img
     try: 
-        cv_img = bridge.imgmsg_to_cv2(ros_img,"rgb8")
+        cv_img = bridge.imgmsg_to_cv2(ros_img,"bgr8")
     except CvBridgeError as e:
         print (e)
 
