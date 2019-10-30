@@ -113,8 +113,10 @@ while not rospy.is_shutdown():
         
     Im_outs_Pub.publish(L_output)  
     #cv2.imshow('SSD output', img)
+    
     msg_frame = bridge.cv2_to_imgmsg(img)
     msg_frame.encoding = 'bgr8'
+    msg_frame.header.frame_id = 'camera_link'
     img_pub.publish(msg_frame)
     rate.sleep()
     '''

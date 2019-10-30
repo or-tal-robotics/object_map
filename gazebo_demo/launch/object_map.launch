@@ -6,5 +6,6 @@
 
 <node pkg="object_mapping" type="Object_Mapper.py" name="object_mapper_node" output="screen"/>
 
+<node pkg="object_mapping" type="Publish_object_to_rviz.py" name="Publish_object_to_rviz_node" output="screen"/>
 
 </launch>

@@ -166,23 +166,27 @@
       <surface>
         <friction>
           <ode>
-            <mu>0.01</mu>
-            <mu2>0.01</mu2>
+            <mu>0.000001</mu>
+            <mu2>0.000001</mu2>
           </ode>
         </friction>
       </surface>
   </link>
 
-  <gazebo reference="back_wheel">
-    <material>Gazebo/White</material>
-  </gazebo>
-
-  <joint name="base_link_back_wheel" type="continuous">
+   <joint name="base_link_back_wheel" type="fixed">
     <parent link="base_link"/>
     <child link="back_wheel"/>
     <axis xyz="0 1 1"/>
     <origin xyz="-0.15 0 0.025"/>
   </joint>
+
+  <gazebo reference="back_wheel">
+    <material>Gazebo/White</material>
+    <mu1>0.000001</mu1>
+    <mu2>0.000001</mu2>
+  </gazebo>
+
+ 
 
 <link name="camera_link">
     <collision>
@@ -238,7 +242,7 @@
   </link>
 
 <joint name="camera_joint" type="fixed">
-    <axis xyz="0 1 0" />
+    <axis xyz="0 0 0" />
     <origin xyz="0.2 0 0.25" rpy="0 0 0"/>
     <parent link="base_link"/>
     <child link="camera_link"/>
@@ -269,7 +273,7 @@
       </camera>
       <plugin name="camera_controller" filename="libgazebo_ros_camera.so">
         <alwaysOn>true</alwaysOn>
-        <updateRate>0.0</updateRate>
+        <updateRate>30.0</updateRate>
         <cameraName>/camera</cameraName>
         <imageTopicName>image_raw</imageTopicName>
         <cameraInfoTopicName>camera_info</cameraInfoTopicName>
