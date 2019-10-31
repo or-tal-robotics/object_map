@@ -6,12 +6,15 @@ from tf.transformations import quaternion_from_euler
 import numpy as np
 
 # msgs:
+
 from object_mapping.msg import Object_Map
 from visualization_msgs.msg import Marker , MarkerArray
 
 def callback_map(data):
     global O_map
     O_map = data
+
+
 
 rospy.init_node('Points_to_rvis', anonymous=True)
 
@@ -28,6 +31,7 @@ while not rospy.is_shutdown():
     M_data = O_map
     list_marker = MarkerArray()
     list_marker.markers = []
+    
 
     for ii in range(len(M_data.object_map)):
         marker = Marker()
@@ -35,6 +39,7 @@ while not rospy.is_shutdown():
         # For the angle:
         [x_q,y_q,z_q,w_q] = quaternion_from_euler(0,0,M_data.object_map[ii].angle)
 
+        
         # For cans:
         if M_data.object_map[ii].cls_num == 5:
 
@@ -56,14 +61,14 @@ while not rospy.is_shutdown():
             marker.pose.orientation.y = 0
             marker.pose.orientation.z = 0
             marker.pose.orientation.w = 1
-            # Location of the can:
-            marker.pose.position.x = M_data.object_map[ii].x_center
-            marker.pose.position.y = M_data.object_map[ii].y_center
-            marker.pose.position.z = 0.1
             # Size:        
             marker.scale.x = 2 * M_data.object_map[ii].r
             marker.scale.y = 2 * M_data.object_map[ii].r
-            marker.scale.z = 0.2
+            marker.scale.z = M_data.object_map[ii].height_factor * marker.scale.x
+            # Location of the can:
+            marker.pose.position.x = M_data.object_map[ii].x_center
+            marker.pose.position.y = M_data.object_map[ii].y_center
+            marker.pose.position.z =  marker.scale.z/2
             # Name:
             marker.ns = 'can' + str(ii)
             list_marker.markers.append(marker)
@@ -120,14 +125,14 @@ while not rospy.is_shutdown():
             marker.pose.orientation.y = y_q
             marker.pose.orientation.z = z_q
             marker.pose.orientation.w = w_q
-            # Location of the TV:
-            marker.pose.position.x = M_data.object_map[ii].x_center
-            marker.pose.position.y = M_data.object_map[ii].y_center
-            marker.pose.position.z = 0.3
             # Size:        
             marker.scale.x = M_data.object_map[ii].a
             marker.scale.y = M_data.object_map[ii].b
-            marker.scale.z = 0.6
+            marker.scale.z = M_data.object_map[ii].height_factor*(np.absolute(marker.scale.x*np.sin(M_data.object_map[ii].angle)) + np.absolute(marker.scale.y*np.cos(M_data.object_map[ii].angle)))
+            # Location of the TV:
+            marker.pose.position.x = M_data.object_map[ii].x_center
+            marker.pose.position.y = M_data.object_map[ii].y_center
+            marker.pose.position.z = marker.scale.z/2
             # Name:
             marker.ns = 'TV' + str(ii)
             list_marker.markers.append(marker)
@@ -178,15 +183,14 @@ while not rospy.is_shutdown():
             marker.pose.orientation.y = y_q
             marker.pose.orientation.z = z_q
             marker.pose.orientation.w = w_q
-            # Location of the TV:
-            marker.pose.position.x = M_data.object_map[ii].x_center
-            marker.pose.position.y = M_data.object_map[ii].y_center
-            marker.pose.position.z = 0.15
             # Size:        
             marker.scale.x = 2*M_data.object_map[ii].a
             marker.scale.y = 2*M_data.object_map[ii].b
-            marker.scale.z = 0.3
-
+            marker.scale.z = 2*(np.absolute(marker.scale.x*np.cos(M_data.object_map[ii].angle)) + np.absolute(marker.scale.y*np.sin(M_data.object_map[ii].angle)))*M_data.object_map[ii].height_factor
+            # Location of the TV:
+            marker.pose.position.x = M_data.object_map[ii].x_center
+            marker.pose.position.y = M_data.object_map[ii].y_center
+            marker.pose.position.z = marker.scale.z/2
             #cat:
             if M_data.object_map[ii].cls_num == 8:
                 # Colour of cat

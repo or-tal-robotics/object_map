@@ -58,12 +58,12 @@ def Rectangle_Likelihood(theta, nbrs_obj):
         Rectangle_vector = _Initializing_half_Rectangle(theta).T       
         distances, idc = nbrs_obj.kneighbors(Rectangle_vector.T)
 
-        return -np.sum(np.exp(-10*distances**2) * np.exp(-0.2*(a - 0.5)**2) * np.exp(-0.2*(b - 0.5)**2))
+        return -np.sum(np.exp(-10*distances**2) * np.exp(-0.2*(a - 0.4)**2) * np.exp(-0.2*(b - 0.03)**2))
 
 
 rospy.init_node('Theta_values', anonymous=True)
 # Publisher:
-Theta_Publisher = rospy.Publisher('/Theta_Object',Object_Geometry,queue_size = 5 )
+
 Theta_list_pub = rospy.Publisher('/Theta_List',OG_List,queue_size = 10)
 # Subscribers:
 scan_point_sub = rospy.Subscriber('/scan' ,LaserScan , callback_laser )
@@ -105,7 +105,7 @@ while not rospy.is_shutdown():
         x_min_new = data.outputs[ii].x_min 
         x_max_new = data.outputs[ii].x_max
         cls_num = data.outputs[ii].cls
-
+        Theta_Object.height_factor = data.outputs[ii].height_factor
         
         # Theta from camera:
         theta_min = x_min_new*(1.4/300)
@@ -188,7 +188,7 @@ while not rospy.is_shutdown():
             box = np.array((las_points[angle_min:angle_max,:]))
             # Bounds for DE algoritm
             bounds_R = [ [np.amin(box[:,0])-0.1 , np.amin([np.amax(box[:,0])+0.1 , 3.5])] , \
-                [np.amin(box[:,1])-0.1,np.amin([np.amax(box[:,1])+0.1 , 3.5])],[-np.pi,np.pi],[0.2,0.8],[0.2,0.8]]
+                [np.amin(box[:,1])-0.1,np.amin([np.amax(box[:,1])+0.1 , 3.5])],[-np.pi,np.pi],[0.2,0.7],[0.01,0.08]]
 
             nbrs_obj = NearestNeighbors(n_neighbors=1, algorithm='ball_tree').fit(box)
             # For being able to send two values for DE algoritm:
@@ -204,6 +204,7 @@ while not rospy.is_shutdown():
             Theta_Object.angle = rectangle_minimized_values.x[2] + yaw
             Theta_Object.r = 0
             Theta_Object.cls = cls_num
+            
             
             Theta_list.object_list.append(Theta_Object)
             #Theta_Publisher.publish(Theta_Object)
@@ -234,50 +235,11 @@ while not rospy.is_shutdown():
             #Theta_Publisher.publish(Theta_Object)
             Theta_list.object_list.append(Theta_Object)
             
-            '''
-            # -----------------------Printing test----------------:
-            cat = Marker()
-            # Test for putting a can in the map.
-            cat.header.frame_id = 'map'
             
-            # Colore of can
-            cat.color.r = 100
-            cat.color.g = 0
-            cat.color.b = 20
-            cat.color.a = 1
-            # Rest of things:
-            cat.id = 1
-            cat.type = 3
-            cat.action = 0
-            cat.lifetime.secs = 0
-
-            # Update the new center:
-            cat.pose.position.x = Theta_Object.x_center
-            cat.pose.position.y = Theta_Object.y_center
-            cat.pose.position.z = 0.15
-            # Size of the can
-            cat.scale.x = 2 * Theta_Object.a
-            cat.scale.y = 2 * Theta_Object.b
-            cat.scale.z = 0.3
-
-            [x_b,y_b,z_b,w_b] = quaternion_from_euler(0,0,Theta_Object.angle)
-            # Orientation of the can
-            cat.pose.orientation.x = x_b
-            cat.pose.orientation.y = y_b
-            cat.pose.orientation.z = z_b
-            cat.pose.orientation.w = w_b
-
-            cat.ns = 'cat'
-            cat.header.stamp = rospy.Time.now()
-
-            cat_pub.publish(cat)
-            '''
             
     Theta_list_pub.publish(Theta_list)
 
 
-# Test:
-##cat_pub = rospy.Publisher('/Cat' , Marker , queue_size = 5)
 
 
 

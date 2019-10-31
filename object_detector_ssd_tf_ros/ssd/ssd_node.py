@@ -82,7 +82,10 @@ while not rospy.is_shutdown():
 
             output.x_min = xmin
             output.x_max = xmax
+            output.y_min = ymin
+            output.y_max = ymax
             output.cls = cls_id
+            output.height_factor = (ymax-ymin)/(xmax-xmin)
 
             for p in probs[i]:
                 output.probability_distribution.append(p)

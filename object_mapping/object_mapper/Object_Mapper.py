@@ -16,6 +16,8 @@ def OG_callback(data):
     # The subs:
     global Theta_list
     Theta_list = data
+
+
     
 
 # Initial node:
@@ -37,8 +39,12 @@ while not rospy.is_shutdown():
     # Globals:
     global Theta_list
     data = Theta_list
+    
+
     for ii in range(0,len(data.object_list)):
         
+        
+
         # Getting the new data:
         obj_new = Object()
         obj_new.x_center = data.object_list[ii].x_center
@@ -49,7 +55,11 @@ while not rospy.is_shutdown():
         obj_new.angle = data.object_list[ii].angle
         obj_new.probabilities = data.object_list[ii].probabilities
         obj_new.cls_num = data.object_list[ii].cls
+        obj_new.height_factor = data.object_list[ii].height_factor
         new_center = np.array([[data.object_list[ii].x_center,data.object_list[ii].y_center]])
+        
+        
+
         
         # The first object initializer:
         if len(object_class_list) == 0:
