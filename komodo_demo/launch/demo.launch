@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<launch>
+
+
+
+
+<include file="$(find komodo_demo)/launch/hector_slam.launch" />
+
+<include file="$(find komodo_demo)/launch/object_map.launch" />
+
+
+
+</launch>
