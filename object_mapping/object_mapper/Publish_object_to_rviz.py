@@ -13,6 +13,7 @@ def callback_map(data):
     global O_map
     O_map = data
 
+
 rospy.init_node('Points_to_rvis', anonymous=True)
 
 # Publisher:
@@ -24,10 +25,15 @@ rospy.wait_for_message('/object_mapped_values',Object_Map)
 
 global O_map
 
+A_Round = rospy.get_param('/Array/round')
+A_Rectangle = rospy.get_param('/Array/rectangle')
+A_Elliptical = rospy.get_param('/Array/elliptical')
+
 while not rospy.is_shutdown():
     M_data = O_map
     list_marker = MarkerArray()
     list_marker.markers = []
+    
 
     for ii in range(len(M_data.object_map)):
         marker = Marker()
@@ -35,8 +41,13 @@ while not rospy.is_shutdown():
         # For the angle:
         [x_q,y_q,z_q,w_q] = quaternion_from_euler(0,0,M_data.object_map[ii].angle)
 
-        # For cans:
-        if M_data.object_map[ii].cls_num == 5:
+        name = rospy.get_param('/object_list/o'+str(M_data.object_map[ii].cls_num)+'/name')
+        
+        height_factor = M_data.object_map[ii].height_factor
+        if height_factor == 0:
+            height_factor = 1
+        
+        if M_data.object_map[ii].cls_num in A_Round:
 
             # Test for putting a can in the map.
             marker.header.frame_id = 'map'
@@ -56,16 +67,16 @@ while not rospy.is_shutdown():
             marker.pose.orientation.y = 0
             marker.pose.orientation.z = 0
             marker.pose.orientation.w = 1
-            # Location of the can:
-            marker.pose.position.x = M_data.object_map[ii].x_center
-            marker.pose.position.y = M_data.object_map[ii].y_center
-            marker.pose.position.z = 0.1
             # Size:        
             marker.scale.x = 2 * M_data.object_map[ii].r
             marker.scale.y = 2 * M_data.object_map[ii].r
-            marker.scale.z = 0.2
+            marker.scale.z = height_factor * marker.scale.x
+            # Location of the can:
+            marker.pose.position.x = M_data.object_map[ii].x_center
+            marker.pose.position.y = M_data.object_map[ii].y_center
+            marker.pose.position.z =  marker.scale.z/2
             # Name:
-            marker.ns = 'can' + str(ii)
+            marker.ns = name + str(ii)
             list_marker.markers.append(marker)
 
             # Text adding:
@@ -88,20 +99,20 @@ while not rospy.is_shutdown():
             marker_name.lifetime.secs = 0
             marker_name.pose.position.x = M_data.object_map[ii].x_center
             marker_name.pose.position.y = M_data.object_map[ii].y_center
-            marker_name.pose.position.z = 0.4
+            marker_name.pose.position.z = 2*marker.pose.position.z + 0.1
             # Size of the text
             marker_name.scale.x = 0.2
             marker_name.scale.y = 0.2
             marker_name.scale.z = 0.2
-            marker_name.text = 'can'
-            marker_name.ns = 'can' + str(ii)
+            marker_name.text = name
+            marker_name.ns = name + str(ii)
 
             list_marker.markers.append(marker_name)
             continue
 
 
-        # TV:
-        if M_data.object_map[ii].cls_num == 18 or M_data.object_map[ii].cls_num == 20:
+        
+        elif M_data.object_map[ii].cls_num in A_Rectangle:
             # Test for putting a TV in the map.
             marker.header.frame_id = 'map'
             marker.header.stamp = rospy.Time.now()
@@ -120,16 +131,16 @@ while not rospy.is_shutdown():
             marker.pose.orientation.y = y_q
             marker.pose.orientation.z = z_q
             marker.pose.orientation.w = w_q
-            # Location of the TV:
-            marker.pose.position.x = M_data.object_map[ii].x_center
-            marker.pose.position.y = M_data.object_map[ii].y_center
-            marker.pose.position.z = 0.3
             # Size:        
             marker.scale.x = M_data.object_map[ii].a
             marker.scale.y = M_data.object_map[ii].b
-            marker.scale.z = 0.6
+            marker.scale.z = height_factor*(np.absolute(marker.scale.x*np.cos(M_data.object_map[ii].angle)) + np.absolute(marker.scale.y*np.sin(M_data.object_map[ii].angle)))
+            # Location of the TV:
+            marker.pose.position.x = M_data.object_map[ii].x_center
+            marker.pose.position.y = M_data.object_map[ii].y_center
+            marker.pose.position.z = marker.scale.z/2
             # Name:
-            marker.ns = 'TV' + str(ii)
+            marker.ns = name + str(ii)
             list_marker.markers.append(marker)
 
             # Text adding:
@@ -151,20 +162,20 @@ while not rospy.is_shutdown():
             marker_name.action = 0
             marker_name.lifetime.secs = 0
             marker_name.pose.position.x = M_data.object_map[ii].x_center
-            marker_name.pose.position.y = M_data.object_map[ii].y_center + 0.1
-            marker_name.pose.position.z = 0.8
+            marker_name.pose.position.y = M_data.object_map[ii].y_center
+            marker_name.pose.position.z = 2*marker.pose.position.z + 0.1
             # Size of the text
             marker_name.scale.x = 0.2
             marker_name.scale.y = 0.2
             marker_name.scale.z = 0.2
-            marker_name.text = 'TV'
-            marker_name.ns = 'TV' + str(ii)
+            marker_name.text = name
+            marker_name.ns = name + str(ii)
 
             list_marker.markers.append(marker_name)
             continue
 
-        if M_data.object_map[ii].cls_num == 8 or M_data.object_map[ii].cls_num == 12 or M_data.object_map[ii].cls_num == 13:
-            # Test for putting a TV in the map.
+        else:
+            # Test for putting an elliptical in the map.
             marker.header.frame_id = 'map'
             marker.header.stamp = rospy.Time.now()
             
@@ -178,45 +189,24 @@ while not rospy.is_shutdown():
             marker.pose.orientation.y = y_q
             marker.pose.orientation.z = z_q
             marker.pose.orientation.w = w_q
-            # Location of the TV:
-            marker.pose.position.x = M_data.object_map[ii].x_center
-            marker.pose.position.y = M_data.object_map[ii].y_center
-            marker.pose.position.z = 0.15
             # Size:        
             marker.scale.x = 2*M_data.object_map[ii].a
             marker.scale.y = 2*M_data.object_map[ii].b
-            marker.scale.z = 0.3
-
-            #cat:
-            if M_data.object_map[ii].cls_num == 8:
-                # Colour of cat
-                marker.color.r = 50
-                marker.color.g = 50
-                marker.color.b = 100
-                marker.color.a = 1
-                marker.ns = 'cat' + str(ii)
-                marker_name.text = 'cat'
-                marker_name.ns = 'cat' + str(ii)
-            #dog:
-            elif M_data.object_map[ii].cls_num == 12:
-                # Colour of cat
-                marker.color.r = 100
-                marker.color.g = 50
-                marker.color.b = 200
-                marker.color.a = 1
-                marker.ns = 'dog' + str(ii)
-                marker_name.text = 'dog'
-                marker_name.ns = 'dog' + str(ii)
-            # horse:
-            else:
-                # Colour of cat
-                marker.color.r = 100
-                marker.color.g = 50
-                marker.color.b = 200
-                marker.color.a = 1
-                marker.ns = 'horse' + str(ii)
-                marker_name.text = 'horse'
-                marker_name.ns = 'horse' + str(ii)
+            marker.scale.z = 2*(np.absolute(marker.scale.x*np.cos(M_data.object_map[ii].angle)) + np.absolute(marker.scale.y*np.sin(M_data.object_map[ii].angle)))*height_factor
+            # Location of the TV:
+            marker.pose.position.x = M_data.object_map[ii].x_center
+            marker.pose.position.y = M_data.object_map[ii].y_center
+            marker.pose.position.z = marker.scale.z/2
+            
+            
+            marker.color.r = 50
+            marker.color.g = 50
+            marker.color.b = 100
+            marker.color.a = 1
+            marker.ns = name + str(ii)
+            marker_name.text = name
+            marker_name.ns = name + str(ii)
+            
             
             list_marker.markers.append(marker)
 
@@ -239,8 +229,8 @@ while not rospy.is_shutdown():
             marker_name.action = 0
             marker_name.lifetime.secs = 0
             marker_name.pose.position.x = M_data.object_map[ii].x_center
-            marker_name.pose.position.y = M_data.object_map[ii].y_center + 0.1
-            marker_name.pose.position.z = 0.8
+            marker_name.pose.position.y = M_data.object_map[ii].y_center
+            marker_name.pose.position.z = 2*marker.pose.position.z + 0.1
             # Size of the text
             marker_name.scale.x = 0.2
             marker_name.scale.y = 0.2
