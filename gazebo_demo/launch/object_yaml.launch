@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<launch>
+    <group ns="object_list">
+        <rosparam file="$(find joint_object_localizer)/config/object.yaml" />
+    </group>
+
+    <group ns="Array">
+        <rosparam file="$(find joint_object_localizer)/config/object_array.yaml" />
+    </group>
+
+    <group ns="Cov">
+        <rosparam file="$(find joint_object_localizer)/config/theta_cov.yaml" />
+    </group>
+
+</launch>

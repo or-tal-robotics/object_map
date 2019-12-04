@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<launch>
+
+
+
+	<!--<include file="$(find gazebo_demo)/launch/gazebo_demo_world.launch" /> -->
+
+	<include file="$(find gazebo_demo)/launch/put_robot_in_world.launch" />
+
+	<include file="$(find gazebo_demo)/launch/hector_slam.launch" />
+
+	<include file="$(find gazebo_demo)/launch/object_map_test.launch" />
+
+	<include file="$(find gazebo_demo)/launch/object_yaml.launch" />
+
+
+
+</launch>
