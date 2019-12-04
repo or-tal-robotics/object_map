@@ -1,0 +1,105 @@
+# Objects with their sizes, names, and area of sizes.
+o2: #bicycle
+ r: 0
+ a: 2
+ b: 0.02
+ name: 'bicycle'
+ bound_a: [1.8,2.2]
+ bound_b: [0.01,0.05]
+ cov:
+ - [0.2,0]
+ - [0,0.01]
+o3: #bird
+ r: 0
+ a: 0.1
+ b: 0.06
+ name: 'bird'
+ bound_a: [0.05,0.15]
+ bound_b: [0.04,0.08]
+ cov:
+ - [0.02,0]
+ - [0,0.01]
+o5: #bottle
+ r: 0.06
+ a: 0
+ b: 0
+ name: 'bottle'
+ bound_r: [0.02,0.08]
+ cov: 0.015
+o8: #cat
+ r: 0
+ a: 0.2
+ b: 0.08
+ name: 'cat'
+ bound_a: [0.1,0.25]
+ bound_b: [0.06,0.11]
+ cov:
+ - [0.04,0]
+ - [0,0.02]
+o12: #dog
+ r: 0
+ a: 0.4
+ b: 0.09
+ name: 'dog'
+ bound_a: [0.15,0.6]
+ bound_b: [0.07,0.12]
+ cov:
+ - [0.05,0]
+ - [0,0.03]
+o14: #motorbike
+ r: 0
+ a: 2
+ b: 0.04
+ name: 'motorbike'
+ bound_a: [1.8,2.2]
+ bound_b: [0.02,0.05]
+ cov:
+ - [0.2,0]
+ - [0,0.01]
+o15: #person
+ r: 0
+ a: 0.2
+ b: 0.09
+ name: 'person'
+ bound_a: [0.15,0.25]
+ bound_b: [0.08,0.12]
+ cov:
+ - [0.04,0]
+ - [0,0.03]
+o16: #pottedplant
+ r: 0.15
+ a: 0
+ b: 0
+ name: 'pottedplant'
+ bound_r: [0.1,0.18]
+ cov: 0.05
+o17: #sheep
+ r: 0
+ a: 1.5
+ b: 0.3
+ name: 'sheep'
+ bound_a: [1.2,1.7]
+ bound_b: [0.25,0.35]
+ cov:
+ - [0.2,0]
+ - [0,0.05]
+o18: #sofa
+ r: 0
+ a: 2
+ b: 0.8
+ name: 'sofa'
+ bound_a: [1.5,3]
+ bound_b: [0.6,0.85]
+ cov:
+ - [0.5,0]
+ - [0,0.2]
+o20: #tvmonitor
+ r: 0
+ a: 0.5
+ b: 0.04
+ name: 'tvmonitor'
+ bound_a: [0.2,0.7]
+ bound_b: [0.03,0.06]
+ cov:
+ - [0.1,0]
+ - [0,0.01]

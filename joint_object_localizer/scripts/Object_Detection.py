@@ -4,15 +4,14 @@
 import rospy
 import numpy as np
 from scipy.optimize import differential_evolution
-from sklearn.neighbors import NearestNeighbors
 from tf.transformations import quaternion_from_euler
-from geometric_functions import _Init_Ellipse,_Initializing_half_Rectangle,quaternion_to_euler,New_Ce_array,_distance,closest_node
+from geometric_functions import Likelihood, quaternion_to_euler, New_Ce_array
 
 # Msgs:
 from object_detector_ssd_tf_ros.msg import SSD_Outputs
 from joint_object_localizer.msg import Object_Geometry,OG_List
-from geometry_msgs.msg import PoseStamped,Point32
-from sensor_msgs.msg import LaserScan, PointCloud
+from geometry_msgs.msg import PoseStamped
+from sensor_msgs.msg import LaserScan
 
 # test:
 #from visualization_msgs.msg import Marker
@@ -32,38 +31,9 @@ def SSD_callback(data):
     SSD_info = data
         
 
-
-
-# ----------------------Finding the center with DE algoritm------------------------:
-# lieklihood functions:
-def probability_for_can(theta):
-    size_of_r_new = len(circle[:,0]) - 1
-    r_new = theta[2] * np.ones((size_of_r_new,1))
-    r_c = ( (theta[0]-circle[:,0])**2 + (theta[1]-circle[:,1])**2 )**0.5
-    return -np.sum(np.exp(-20*(r_new-r_c)**2))* np.exp(-0.7*(theta[2]-0.06)**2)
-
-def Ellipse_likelihood(theta,nbrs_obj):
-
-        a = theta[3]
-        b = theta[4]
-        Ellipse_vector = _Init_Ellipse(theta)
-        distances, idc = nbrs_obj.kneighbors(Ellipse_vector.T)
-        
-        return -np.sum(np.exp(-10*distances**2) * np.exp(-0.4*(a - 0.25)**2) * np.exp(-0.4*(b - 0.1)**2))
-
-def Rectangle_Likelihood(theta, nbrs_obj):
-
-        a = theta[3]
-        b = theta[4]
-        Rectangle_vector = _Initializing_half_Rectangle(theta).T       
-        distances, idc = nbrs_obj.kneighbors(Rectangle_vector.T)
-
-        return -np.sum(np.exp(-10*distances**2) * np.exp(-0.2*(a - 0.5)**2) * np.exp(-0.2*(b - 0.05)**2))
-
-
 rospy.init_node('Theta_values', anonymous=True)
 # Publisher:
-Objecct_P_pub = rospy.Publisher('/OB_Points' , PointCloud , queue_size = 5 )
+
 Theta_list_pub = rospy.Publisher('/Theta_List',OG_List,queue_size = 10)
 # Subscribers:
 scan_point_sub = rospy.Subscriber('/scan' ,LaserScan , callback_laser )
@@ -73,12 +43,17 @@ rospy.wait_for_message('/slam_out_pose',PoseStamped)
 SSD_sub = rospy.Subscriber('/im_info',SSD_Outputs,SSD_callback,queue_size=1)
 rospy.wait_for_message('/im_info',SSD_Outputs)
 
+# YAMLs:
+A_Round = rospy.get_param('/Array/round')
+A_Rectangle = rospy.get_param('/Array/rectangle')
+A_Elliptical = rospy.get_param('/Array/elliptical')
+Object_cls_list = np.array(rospy.get_param('/Array/object_list'))
+
 r = rospy.Rate(5)
 
 while not rospy.is_shutdown():
     r.sleep()
-    
-    xyz = Point32()
+
     data = SSD_info
     if data.outputs[0].cls == -1:
         Theta_list = OG_List()
@@ -86,7 +61,6 @@ while not rospy.is_shutdown():
         Theta_list_pub.publish(Theta_list)
         continue
     Theta_list = OG_List()
-    # globals
     Theta_list.object_list = []
     # Calculating the maximum angle of the sensor:
     angle_jumps = scan_point.angle_increment
@@ -94,30 +68,39 @@ while not rospy.is_shutdown():
     theta_camera_max = 1.4
 
     # The angle that needed to be added to the camera angle to get the angle for the sensor:
-    correction_for_sensor = (phi_max + theta_camera_max) / 2 
+    correction_for_sensor = (phi_max + theta_camera_max) / 2
     size =  (len(scan_point.ranges) - 1)/2
     
     
-    # In case there is no object that has been detected:
-    
     
     for ii in range (0,len(data.outputs)):
-        P = PointCloud()
-        P.points = []
-        P.header.frame_id = 'laser_link'
+
         Theta_Object = Object_Geometry()
         # Getting the info from the camera:
         x_min_new = data.outputs[ii].x_min 
         x_max_new = data.outputs[ii].x_max
-        cls_num = data.outputs[ii].cls
+        y_min_new = data.outputs[ii].y_min
+        y_max_new = data.outputs[ii].y_max
 
+        if y_min_new > 160 or y_max_new < 130:
+            continue
+
+
+        cls_num = data.outputs[ii].cls
+        Theta_Object.height_factor = data.outputs[ii].height_factor
         
+        # In case the object is not a one that can be stationed in the map:
+        if cls_num not in Object_cls_list:
+            continue
+        
+
         # Theta from camera:
         theta_min = x_min_new*(1.4/300)
         theta_max = x_max_new*(1.4/300)
+
         # Angle from the sensor:
-        angle_max = int((correction_for_sensor - theta_min) / angle_jumps) + 10
-        angle_min = int((correction_for_sensor - theta_max) / angle_jumps) + 35
+        angle_max = int((correction_for_sensor - theta_min) / angle_jumps)
+        angle_min = int((correction_for_sensor - theta_max) / angle_jumps)
 
         # Orientation of the robot:
         R_qx = Robot_Pose.pose.orientation.x
@@ -131,13 +114,10 @@ while not rospy.is_shutdown():
         y_R = Robot_Pose.pose.position.y
 
         las_points = np.zeros((2*size + 1,2))
-        # Initializing the array of the points:
-        circle = []
-
         R = np.array(scan_point.ranges)
-        # Initializing an inf values:
-        R[np.isinf(R)+np.isnan(R)] = 0
 
+        # Initializing an inf values:
+        R[np.isinf(R)] = 0
 
         for i in range (0,size):
             
@@ -147,12 +127,6 @@ while not rospy.is_shutdown():
                 continue
             las_points[i,0] = -R[i] * np.cos((size - i) * angle_jumps - np.pi)
             las_points[i,1] = R[i] * np.sin((size - i) * angle_jumps - np.pi)
-            if cls_num != 0  and x_min_new != -1 and i < angle_max and i >= angle_min:
-                xyz = Point32()
-                xyz.x = las_points[i,0]
-                xyz.y = las_points[i,1]
-                xyz.z = 0
-                P.points.append(xyz)
             
         for i in range (size,2*size+1):
             if R[i] == 0:
@@ -161,35 +135,34 @@ while not rospy.is_shutdown():
                 continue
             las_points[i,0] = R[i] * np.cos((i-size) * angle_jumps)
             las_points[i,1] = R[i] * np.sin((i-size) * angle_jumps)
-
-            if cls_num != 0  and x_min_new != -1 and i < angle_max and i >= angle_min:
-                xyz = Point32()
-                xyz.x = las_points[i,0]
-                xyz.y = las_points[i,1]
-                xyz.z = 0
-                
-                P.points.append(xyz)
         
-        Objecct_P_pub.publish(P)
+
+        
+           
         # Round objects:
-        if cls_num == 5:
+        if cls_num in A_Round:
             
             
             # Initializing the circle array:
             circle = np.array((las_points[angle_min:angle_max,:]))
 
-            # If the object beyond the search area:
-            if np.amin(circle[:,0])-0.1>=np.amin([np.amax(circle[:,0])+0.1 , 2]) or np.amin(circle[:,1])-0.1 >= np.amin([np.amax(circle[:,1])+0.1 , 2]):
+            if np.amin(circle[:,0]**2 + circle[:,1]**2)>4:
                 continue
 
+            bound_r = rospy.get_param('/object_list/o'+str(cls_num)+'/bound_r')
+
             # Bounds for DE algoritm
-            bounds = [ [np.amin(circle[:,0])-0.1 , np.amin([np.amax(circle[:,0])+0.1 , 2])] , \
-                [np.amin(circle[:,1])-0.1,np.amin([np.amax(circle[:,1])+0.1 , 2])],[0.02,0.08]]
+            bounds = [ [np.amin(circle[:,0])-0.1 , np.amin([np.amax(circle[:,0])+0.1 , 2.5])] , \
+                [np.amin(circle[:,1])-0.1,np.amin([np.amax(circle[:,1])+0.1 , 2.5])],bound_r,[-np.pi,np.pi]]
             
+            
+            C_class = Likelihood(class_number=cls_num,Z=circle,SSD_probability=data.outputs[ii].probability_distribution)
             # DE algoritm
-            circle_minimized_values = differential_evolution(probability_for_can,bounds \
+            circle_minimized_values = differential_evolution(C_class.probability_for_circle,bounds \
                 , maxiter = 100,  popsize=15, tol=0.00001)
 
+            if circle_minimized_values.x[0]**2 + circle_minimized_values.x[1]**2 > 4:
+                continue
             # Entering the found data:
             v0 = New_Ce_array(circle_minimized_values.x[0],circle_minimized_values.x[1],x_R,y_R,yaw)
             Theta_Object.probabilities = data.outputs[ii].probability_distribution
@@ -201,32 +174,36 @@ while not rospy.is_shutdown():
             Theta_Object.angle = 0
 
             Theta_Object.cls = cls_num
-            if (circle_minimized_values.x[0]**2 + circle_minimized_values.x[1]**2)**0.5 < 2:
-                Theta_list.object_list.append(Theta_Object)
-
+            
+            Theta_list.object_list.append(Theta_Object)
+            
             
         # Box:
-        elif cls_num == 18 or cls_num == 20:
+        elif cls_num in A_Rectangle:
 
             
             # Initializing the box array:
             box = np.array((las_points[angle_min:angle_max,:]))
 
-            # If the object beyond the search area:
-            if np.amin(box[:,0])-0.1>=np.amin([np.amax(box[:,0])+0.1 , 2.5]) or np.amin(box[:,1])-0.1 >= np.amin([np.amax(box[:,1])+0.1 , 2.5]) or len(box) == 0:
+            if np.amin(box[:,0]**2 + box[:,1]**2)>4:
                 continue
 
+            bound_a = rospy.get_param('/object_list/o'+str(cls_num)+'/bound_a')
+            bound_b = rospy.get_param('/object_list/o'+str(cls_num)+'/bound_b')
             # Bounds for DE algoritm
-            bounds_R = [ [np.amin(box[:,0])-0.1 , np.amin([np.amax(box[:,0])+0.1 , 3.5])] , \
-                [np.amin(box[:,1])-0.1,np.amin([np.amax(box[:,1])+0.1 , 3.5])],[-np.pi,np.pi],[0.2,0.8],[0.02,0.08]]
+            bounds_R = [ [np.amin(box[:,0])-0.1 , np.amin([np.amax(box[:,0])+0.1 , 3])] , \
+                [np.amin(box[:,1])-0.1,np.amin([np.amax(box[:,1])+0.1 , 3])],[-np.pi,np.pi],bound_a,bound_b]
 
-            nbrs_obj = NearestNeighbors(n_neighbors=1, algorithm='ball_tree').fit(box)
-            # For being able to send two values for DE algoritm:
-            iterable_function = lambda x: Rectangle_Likelihood(x,nbrs_obj)
+            
+            R_class = Likelihood(class_number=cls_num , Z=box , SSD_probability=data.outputs[ii].probability_distribution)
             # DE angoritm:
-            rectangle_minimized_values = differential_evolution(iterable_function,bounds_R \
+            rectangle_minimized_values = differential_evolution(R_class.probability_for_Rectangle,bounds_R \
                 , maxiter = 100,  popsize=15, tol=0.00001)
             # Entering the found data:
+
+
+            if rectangle_minimized_values.x[0]**2 + rectangle_minimized_values.x[1]**2 > 9:
+                continue
             Theta_Object.probabilities = data.outputs[ii].probability_distribution
             Theta_Object.x_center , Theta_Object.y_center = New_Ce_array(rectangle_minimized_values.x[0] ,rectangle_minimized_values.x[1],x_R,y_R,yaw)
             Theta_Object.a = rectangle_minimized_values.x[3]
@@ -235,31 +212,32 @@ while not rospy.is_shutdown():
             Theta_Object.r = 0
             Theta_Object.cls = cls_num
             
-
-            if (rectangle_minimized_values.x[0]**2 + rectangle_minimized_values.x[1]**2)**0.5<2:
-                Theta_list.object_list.append(Theta_Object)
-
             
-        # cat,dog,horse:
-        elif cls_num == 8 or cls_num == 12 or cls_num == 13:
+            Theta_list.object_list.append(Theta_Object)
             
-            # Initializing the ellipse array:
+        # cat,dog:
+        elif cls_num in A_Elliptical:
+            
+            # Initializing the box array:
             ellipse = np.array((las_points[angle_min:angle_max,:]))
 
-            # If the object beyond the search area:
-            if np.amin(ellipse[:,0])-0.1>=np.amin([np.amax(ellipse[:,0])+0.1 , 2.5]) or np.amin(ellipse[:,1])-0.1 >= np.amin([np.amax(ellipse[:,1])+0.1 , 2.5]):
+            if np.amin(ellipse[:,0]**2 + ellipse[:,1]**2)>4:
                 continue
 
+            bound_a = rospy.get_param('/object_list/o'+str(cls_num)+'/bound_a')
+            bound_b = rospy.get_param('/object_list/o'+str(cls_num)+'/bound_b')
             # Bounds for DE algoritm
-            bounds_E = [ [np.amin(ellipse[:,0])-0.1 , np.amin([np.amax(ellipse[:,0])+0.1 , 3.5])] , \
-                [np.amin(ellipse[:,1])-0.1,np.amin([np.amax(ellipse[:,1])+0.1 , 3.5])],[-np.pi,np.pi],[0.1,0.8],[0.1,0.8]]
+            bounds_E = [ [np.amin(ellipse[:,0])-0.1 , np.amin([np.amax(ellipse[:,0])+0.1 , 2])] , \
+                [np.amin(ellipse[:,1])-0.1,np.amin([np.amax(ellipse[:,1])+0.1 , 2])],[0,np.pi],bound_a,bound_b]
 
-            nbrs_obj = NearestNeighbors(n_neighbors=1, algorithm='ball_tree').fit(ellipse)
-            # For being able to send two values for DE algoritm:
-            iterable_function = lambda x: Ellipse_likelihood(x,nbrs_obj)
+            E_class = Likelihood(class_number=cls_num , Z=ellipse , SSD_probability=data.outputs[ii].probability_distribution)
             # DE angoritm:
-            elliptical_minimized_values = differential_evolution(iterable_function,bounds_E \
+            elliptical_minimized_values = differential_evolution(E_class.probability_for_Ellipse,bounds_E \
                 , maxiter = 100,  popsize=15, tol=0.00001)
+
+                  
+            if elliptical_minimized_values.x[0]**2 + elliptical_minimized_values.x[1]**2 > 4:
+                continue
             # Entering the found data:
             Theta_Object.probabilities = data.outputs[ii].probability_distribution
             Theta_Object.x_center , Theta_Object.y_center = New_Ce_array(elliptical_minimized_values.x[0] ,elliptical_minimized_values.x[1],x_R,y_R,yaw)
@@ -268,13 +246,13 @@ while not rospy.is_shutdown():
             Theta_Object.angle = elliptical_minimized_values.x[2] + yaw
             Theta_Object.r = 0
             Theta_Object.cls = cls_num
-
-            if (elliptical_minimized_values.x[0]**2 + elliptical_minimized_values.x[1]**2)**0.5<2:
-                Theta_list.object_list.append(Theta_Object)
-            
+            #Theta_Publisher.publish(Theta_Object)
+            Theta_list.object_list.append(Theta_Object)
+       
             
             
     Theta_list_pub.publish(Theta_list)
+
 
 
 
