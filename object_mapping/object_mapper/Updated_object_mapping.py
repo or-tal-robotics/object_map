@@ -13,7 +13,7 @@ from object_mapping.msg import Single_Class , M_i , M
 
 def M_o_callback(data):
 
-    epsilon = 0.1
+    epsilon = 0.05
     global M_list_class
     # The subs:
     global Theta_list

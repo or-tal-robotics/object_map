@@ -10,6 +10,7 @@ from geometric_functions import Likelihood, quaternion_to_euler, New_Ce_array
 # Msgs:
 from object_detector_ssd_tf_ros.msg import SSD_Outputs
 from joint_object_localizer.msg import Object_Geometry,OG_List
+from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseStamped
 from sensor_msgs.msg import LaserScan
 
@@ -29,6 +30,10 @@ def SSD_callback(data):
         
     global SSD_info
     SSD_info = data
+
+def Odom_callback(data):
+    global Robot_Odometry
+    Robot_Odometry = data.pose.pose
         
 
 rospy.init_node('Theta_values', anonymous=True)
@@ -40,6 +45,8 @@ scan_point_sub = rospy.Subscriber('/scan' ,LaserScan , callback_laser )
 rospy.wait_for_message('/scan',LaserScan)
 Robot_sub = rospy.Subscriber('/slam_out_pose',PoseStamped,Robot_callback)
 rospy.wait_for_message('/slam_out_pose',PoseStamped)
+Robot_World_Location_sub = rospy.Subscriber('/odom',Odometry,Odom_callback)
+rospy.wait_for_message('/odom',Odometry)
 SSD_sub = rospy.Subscriber('/im_info',SSD_Outputs,SSD_callback,queue_size=1)
 rospy.wait_for_message('/im_info',SSD_Outputs)
 
@@ -50,6 +57,7 @@ A_Elliptical = rospy.get_param('/Array/elliptical')
 Object_cls_list = np.array(rospy.get_param('/Array/object_list'))
 
 r = rospy.Rate(5)
+global Robot_Odometry
 
 while not rospy.is_shutdown():
     r.sleep()
@@ -102,16 +110,29 @@ while not rospy.is_shutdown():
         angle_max = int((correction_for_sensor - theta_min) / angle_jumps)
         angle_min = int((correction_for_sensor - theta_max) / angle_jumps)
 
-        # Orientation of the robot:
+        '''
+        # Orientation of the robot from slam_out_pose:
         R_qx = Robot_Pose.pose.orientation.x
         R_qy = Robot_Pose.pose.orientation.y
         R_qz = Robot_Pose.pose.orientation.z
         R_qw = Robot_Pose.pose.orientation.w
+        '''
+        # Orientation of the robot from the Odometry:
+        R_qx = Robot_Odometry.orientation.x
+        R_qy = Robot_Odometry.orientation.y
+        R_qz = Robot_Odometry.orientation.z
+        R_qw = Robot_Odometry.orientation.w
+
         [yaw, pitch, roll] = quaternion_to_euler(R_qx,R_qy,R_qz,R_qw)
         
-        # Location of the robot: 
+        '''
+        # Location of the robot from slam_out_pose: 
         x_R = Robot_Pose.pose.position.x
         y_R = Robot_Pose.pose.position.y
+        '''
+        # Location of the robot from Odometry: 
+        x_R = Robot_Odometry.position.x
+        y_R = Robot_Odometry.position.y
 
         las_points = np.zeros((2*size + 1,2))
         R = np.array(scan_point.ranges)

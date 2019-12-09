@@ -53,8 +53,8 @@ def GMM_Prior(mu,sigma,Z):
 
 # R - robot, c - old center
 def New_Ce_array(x_c,y_c,x_R,y_R,yaw):
-    x = x_R +  x_c*np.cos(yaw) - y_c*np.sin(yaw) + 0.225*np.cos(yaw)
-    y = y_R +  y_c*np.cos(yaw) + x_c*np.sin(yaw) + 0.225*np.sin(yaw)
+    x = x_R +  x_c*np.cos(yaw) - y_c*np.sin(yaw) + 0.15*np.cos(yaw)
+    y = y_R +  y_c*np.cos(yaw) + x_c*np.sin(yaw) + 0.15*np.sin(yaw)
    
     # Return the real pose of the point after changing it from the view of the laser:
     return np.array([x,y])
@@ -84,11 +84,11 @@ def _Initializing_half_Rectangle(theta):
 
     if phi > 0 and phi < np.pi or phi < 0 and phi > -np.pi:
         
-        b_a = 6*int(b/(a+b))
+        b_a = 7*int(b/(a+b))
         x1 = -a/2 * np.ones(b_a)
         y1 = np.linspace(-b/2 , b/2 , b_a)
-        x2 = np.linspace(-a/2 , a/2 , 6 -b_a)
-        y2 = -b/2 *  np.ones(6-b_a)
+        x2 = np.linspace(-a/2 , a/2 , 7 -b_a)
+        y2 = -b/2 *  np.ones(7-b_a)
         x3 = np.concatenate((x1,x2) , axis = None)
         y3 = np.concatenate((y1,y2) , axis = None)
         x = x3 * np.cos(phi) - y3 * np.sin(phi) + x0
@@ -99,13 +99,13 @@ def _Initializing_half_Rectangle(theta):
         n = y0 - a/2
         x1 = x0 - a/2
         x2 = x0 + a/2
-        x_v = np.linspace(x1,x2,6)
-        y_v = np.ones(5) * n
+        x_v = np.linspace(x1,x2,7)
+        y_v = np.ones(7) * n
         Rectangle_vector = np.array([x_v,y_v]).T
             
     else:
-        x_v = np.linspace(0,100,6)
-        y_v = np.ones(6) * 9999
+        x_v = np.linspace(0,100,7)
+        y_v = np.ones(7) * 9999
         Rectangle_vector = np.array([x_v,y_v]).T
             
             
@@ -175,7 +175,7 @@ class Likelihood():
             b = theta[4]
             Ellipse_vector = _Init_Ellipse(theta)
             
-            sigma = np.array([[0.001,0],[0,0.001]])
+            sigma = np.array([[0.0005,0],[0,0.0005]])
             sigma_prior = np.array(rospy.get_param('/object_list/o'+str(self.class_number) + '/cov'))
             L = GMM_Likelihood(Ellipse_vector,sigma,self.Z)
             a_mean = rospy.get_param('/object_list/o'+str(self.class_number) + '/a')
