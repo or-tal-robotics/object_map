@@ -53,8 +53,8 @@ def GMM_Prior(mu,sigma,Z):
 
 # R - robot, c - old center
 def New_Ce_array(x_c,y_c,x_R,y_R,yaw):
-    x = x_R +  x_c*np.cos(yaw) - y_c*np.sin(yaw) + 0.25*np.cos(yaw)
-    y = y_R +  y_c*np.cos(yaw) + x_c*np.sin(yaw) + 0.25*np.sin(yaw)
+    x = x_R +  x_c*np.cos(yaw) - y_c*np.sin(yaw) + 0.3*np.cos(yaw)
+    y = y_R +  y_c*np.cos(yaw) + x_c*np.sin(yaw) + 0.3*np.sin(yaw)
    
     # Return the real pose of the point after changing it from the view of the laser:
     return np.array([x,y])
@@ -146,7 +146,7 @@ class Likelihood():
             
             Rectangle_vector = _Initializing_half_Rectangle(theta).T       
             
-            sigma = np.array([[0.001,0],[0,0.001]])
+            sigma = np.array([[0.002,0],[0,0.002]])
             sigma_prior = np.array(rospy.get_param('/object_list/o'+str(self.class_number) + '/cov'))
             L = GMM_Likelihood(Rectangle_vector,sigma,self.Z)
             
@@ -175,7 +175,7 @@ class Likelihood():
             b = theta[4]
             Ellipse_vector = _Init_Ellipse(theta)
             
-            sigma = np.array([[0.0005,0],[0,0.0005]])
+            sigma = np.array([[0.002,0],[0,0.002]])
             sigma_prior = np.array(rospy.get_param('/object_list/o'+str(self.class_number) + '/cov'))
             L = GMM_Likelihood(Ellipse_vector,sigma,self.Z)
             a_mean = rospy.get_param('/object_list/o'+str(self.class_number) + '/a')

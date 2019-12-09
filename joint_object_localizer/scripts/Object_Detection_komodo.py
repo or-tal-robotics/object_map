@@ -11,8 +11,8 @@ from geometric_functions import Likelihood, quaternion_to_euler, New_Ce_array
 from object_detector_ssd_tf_ros.msg import SSD_Outputs
 from joint_object_localizer.msg import Object_Geometry,OG_List
 from nav_msgs.msg import Odometry
-from geometry_msgs.msg import PoseStamped
-from sensor_msgs.msg import LaserScan
+from geometry_msgs.msg import PoseStamped , Point32
+from sensor_msgs.msg import LaserScan , PointCloud
 
 # test:
 #from visualization_msgs.msg import Marker
@@ -38,7 +38,7 @@ def Odom_callback(data):
 
 rospy.init_node('Theta_values', anonymous=True)
 # Publisher:
-
+Object_P_pub = rospy.Publisher('/OB_Points' , PointCloud , queue_size = 5 )
 Theta_list_pub = rospy.Publisher('/Theta_List',OG_List,queue_size = 10)
 # Subscribers:
 scan_point_sub = rospy.Subscriber('/scan' ,LaserScan , callback_laser )
@@ -93,7 +93,8 @@ while not rospy.is_shutdown():
         y_min_new = data.outputs[ii].y_min
         y_max_new = data.outputs[ii].y_max
 
-        if y_min_new > 180 or y_max_new < 140:
+        if y_min_new > 200 or y_max_new < 120:
+            print ('Not in a good height')
             continue
 
 
@@ -111,8 +112,8 @@ while not rospy.is_shutdown():
         theta_max = x_max_new*(1.4/300)
 
         # Angle from the sensor:
-        angle_max = int((correction_for_sensor - theta_min) / angle_jumps) + 25
-        angle_min = int((correction_for_sensor - theta_max) / angle_jumps) + 25
+        angle_max = int((correction_for_sensor - theta_min) / angle_jumps) + 10
+        angle_min = int((correction_for_sensor - theta_max) / angle_jumps) + 80
 
         
         # Orientation of the robot from slam_out_pose:
@@ -150,9 +151,13 @@ while not rospy.is_shutdown():
         Dist_check = np.array(R[angle_min:angle_max])
         Dist_check = Dist_check[Dist_check != 0]
         if np.amin(Dist_check) > 1:
+            print('far')
             continue
         print ('Close enough, starting.')
 
+        P = PointCloud()
+        P.points = []
+        P.header.frame_id = 'laser_link'
         for i in range (0,size):
             
             if R[i] == 0:
@@ -162,6 +167,14 @@ while not rospy.is_shutdown():
             las_points[i,0] = -R[i] * np.cos((size - i) * angle_jumps - np.pi)
             las_points[i,1] = R[i] * np.sin((size - i) * angle_jumps - np.pi)
             
+            if cls_num != 0  and x_min_new != -1 and i < angle_max and i >= angle_min:
+                xyz = Point32()
+                xyz.x = las_points[i,0]
+                xyz.y = las_points[i,1]
+                xyz.z = 0
+                P.points.append(xyz)
+
+        
         for i in range (size,2*size+1):
             if R[i] == 0:
                 las_points[i,0] = 100000
@@ -169,8 +182,15 @@ while not rospy.is_shutdown():
                 continue
             las_points[i,0] = R[i] * np.cos((i-size) * angle_jumps)
             las_points[i,1] = R[i] * np.sin((i-size) * angle_jumps)
-        
-        
+
+            if cls_num != 0  and x_min_new != -1 and i < angle_max and i >= angle_min:
+                xyz = Point32()
+                xyz.x = las_points[i,0]
+                xyz.y = las_points[i,1]
+                xyz.z = 0
+                
+                P.points.append(xyz)
+        Object_P_pub.publish(P)
         if cls_num in Object_cls_list:
             print ('In list')
         else:
