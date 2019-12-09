@@ -45,8 +45,10 @@ scan_point_sub = rospy.Subscriber('/scan' ,LaserScan , callback_laser )
 rospy.wait_for_message('/scan',LaserScan)
 Robot_sub = rospy.Subscriber('/slam_out_pose',PoseStamped,Robot_callback)
 rospy.wait_for_message('/slam_out_pose',PoseStamped)
+'''
 Robot_World_Location_sub = rospy.Subscriber('/odom',Odometry,Odom_callback)
 rospy.wait_for_message('/odom',Odometry)
+'''
 SSD_sub = rospy.Subscriber('/im_info',SSD_Outputs,SSD_callback,queue_size=1)
 rospy.wait_for_message('/im_info',SSD_Outputs)
 
@@ -81,6 +83,7 @@ while not rospy.is_shutdown():
     
     
     
+    
     for ii in range (0,len(data.outputs)):
 
         Theta_Object = Object_Geometry()
@@ -90,12 +93,13 @@ while not rospy.is_shutdown():
         y_min_new = data.outputs[ii].y_min
         y_max_new = data.outputs[ii].y_max
 
-        if y_min_new > 160 or y_max_new < 130:
+        if y_min_new > 180 or y_max_new < 140:
             continue
 
 
         cls_num = data.outputs[ii].cls
         Theta_Object.height_factor = data.outputs[ii].height_factor
+        
         
         # In case the object is not a one that can be stationed in the map:
         if cls_num not in Object_cls_list:
@@ -107,8 +111,8 @@ while not rospy.is_shutdown():
         theta_max = x_max_new*(1.4/300)
 
         # Angle from the sensor:
-        angle_max = int((correction_for_sensor - theta_min) / angle_jumps)
-        angle_min = int((correction_for_sensor - theta_max) / angle_jumps)
+        angle_max = int((correction_for_sensor - theta_min) / angle_jumps) + 25
+        angle_min = int((correction_for_sensor - theta_max) / angle_jumps) + 25
 
         
         # Orientation of the robot from slam_out_pose:
@@ -122,10 +126,10 @@ while not rospy.is_shutdown():
         R_qy = Robot_Odometry.orientation.y
         R_qz = Robot_Odometry.orientation.z
         R_qw = Robot_Odometry.orientation.w
-
+        '''
         [yaw, pitch, roll] = quaternion_to_euler(R_qx,R_qy,R_qz,R_qw)
         
-        '''
+        
         # Location of the robot from slam_out_pose: 
         x_R = Robot_Pose.pose.position.x
         y_R = Robot_Pose.pose.position.y
@@ -139,6 +143,15 @@ while not rospy.is_shutdown():
 
         # Initializing an inf values:
         R[np.isinf(R)] = 0
+
+        # Initializing an inf values:
+        R[np.isnan(R)] = 0
+
+        Dist_check = np.array(R[angle_min:angle_max])
+        Dist_check = Dist_check[Dist_check != 0]
+        if np.amin(Dist_check) > 1:
+            continue
+        print ('Close enough, starting.')
 
         for i in range (0,size):
             
@@ -157,12 +170,19 @@ while not rospy.is_shutdown():
             las_points[i,0] = R[i] * np.cos((i-size) * angle_jumps)
             las_points[i,1] = R[i] * np.sin((i-size) * angle_jumps)
         
-
         
-           
+        if cls_num in Object_cls_list:
+            print ('In list')
+        else:
+            continue
+        #print('done!')
+        
+
+
         # Round objects:
         if cls_num in A_Round:
             
+        
             
             # Initializing the circle array:
             circle = np.array((las_points[angle_min:angle_max,:]))
@@ -177,12 +197,13 @@ while not rospy.is_shutdown():
                 [np.amin(circle[:,1])-0.1,np.amin([np.amax(circle[:,1])+0.1 , 2.5])],bound_r,[-np.pi,np.pi]]
             
             
-            C_class = Likelihood(class_number=cls_num,Z=circle,SSD_probability=data.outputs[ii].probability_distribution)
+            C_class = Likelihood(class_number=cls_num,Z=circle,
+                                SSD_probability=data.outputs[ii].probability_distribution)
             # DE algoritm
-            circle_minimized_values = differential_evolution(C_class.probability_for_circle,bounds \
-                , maxiter = 100,  popsize=15, tol=0.00001)
+            circle_minimized_values = differential_evolution(C_class.probability_for_circle,bounds ,
+                                                            maxiter = 100,  popsize=15, tol=0.00001)
 
-            if circle_minimized_values.x[0]**2 + circle_minimized_values.x[1]**2 > 4:
+            if circle_minimized_values.x[0]**2 + circle_minimized_values.x[1]**2 > 5:
                 continue
             # Entering the found data:
             v0 = New_Ce_array(circle_minimized_values.x[0],circle_minimized_values.x[1],x_R,y_R,yaw)
@@ -206,7 +227,7 @@ while not rospy.is_shutdown():
             # Initializing the box array:
             box = np.array((las_points[angle_min:angle_max,:]))
 
-            if np.amin(box[:,0]**2 + box[:,1]**2)>4:
+            if np.amin(box[:,0]**2 + box[:,1]**2)>5:
                 continue
 
             bound_a = rospy.get_param('/object_list/o'+str(cls_num)+'/bound_a')
@@ -242,8 +263,7 @@ while not rospy.is_shutdown():
             # Initializing the box array:
             ellipse = np.array((las_points[angle_min:angle_max,:]))
 
-            if np.amin(ellipse[:,0]**2 + ellipse[:,1]**2)>4:
-                continue
+            
 
             bound_a = rospy.get_param('/object_list/o'+str(cls_num)+'/bound_a')
             bound_b = rospy.get_param('/object_list/o'+str(cls_num)+'/bound_b')
@@ -268,6 +288,7 @@ while not rospy.is_shutdown():
             Theta_Object.r = 0
             Theta_Object.cls = cls_num
             #Theta_Publisher.publish(Theta_Object)
+            print ('Send to update')
             Theta_list.object_list.append(Theta_Object)
        
             

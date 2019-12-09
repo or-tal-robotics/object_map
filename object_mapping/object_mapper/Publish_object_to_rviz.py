@@ -44,6 +44,7 @@ while not rospy.is_shutdown():
         name = rospy.get_param('/object_list/o'+str(M_data.object_map[ii].cls_num)+'/name')
         
         height_factor = M_data.object_map[ii].height_factor
+        
         if height_factor == 0:
             height_factor = 1
         
@@ -88,9 +89,9 @@ while not rospy.is_shutdown():
             marker_name.pose.orientation.z = 0
             marker_name.pose.orientation.w = 1
             # Colore of text
-            marker_name.color.r = 200
-            marker_name.color.g = 200
-            marker_name.color.b = 200
+            marker_name.color.r = 0
+            marker_name.color.g = 0
+            marker_name.color.b = 0
             marker_name.color.a = 1
             # Rest of things:
             marker_name.id = 10
@@ -101,9 +102,9 @@ while not rospy.is_shutdown():
             marker_name.pose.position.y = M_data.object_map[ii].y_center
             marker_name.pose.position.z = 2*marker.pose.position.z + 0.1
             # Size of the text
-            marker_name.scale.x = 0.2
-            marker_name.scale.y = 0.2
-            marker_name.scale.z = 0.2
+            marker_name.scale.x = 0.4
+            marker_name.scale.y = 0.4
+            marker_name.scale.z = 0.4
             marker_name.text = name
             marker_name.ns = name + str(ii)
 
@@ -134,7 +135,13 @@ while not rospy.is_shutdown():
             # Size:        
             marker.scale.x = M_data.object_map[ii].a
             marker.scale.y = M_data.object_map[ii].b
-            marker.scale.z = height_factor*(np.absolute(marker.scale.x*np.cos(M_data.object_map[ii].angle)) + np.absolute(marker.scale.y*np.sin(M_data.object_map[ii].angle)))
+            angle_O = M_data.object_map[ii].angle
+            if angle_O <= np.pi and angle_O >= 0:
+                marker.scale.z = height_factor * marker.scale.x * np.sin(angle_O)
+                
+            else:
+                marker.scale.z = -height_factor * marker.scale.x * np.sin(angle_O)
+            #print (marker.scale.z)
             # Location of the TV:
             marker.pose.position.x = M_data.object_map[ii].x_center
             marker.pose.position.y = M_data.object_map[ii].y_center
@@ -152,9 +159,9 @@ while not rospy.is_shutdown():
             marker_name.pose.orientation.z = z_q
             marker_name.pose.orientation.w = w_q
             # Colour of text
-            marker_name.color.r = 200
-            marker_name.color.g = 200
-            marker_name.color.b = 200
+            marker_name.color.r = 0
+            marker_name.color.g = 0
+            marker_name.color.b = 0
             marker_name.color.a = 1
             # Rest of things:
             marker_name.id = 10
@@ -165,9 +172,9 @@ while not rospy.is_shutdown():
             marker_name.pose.position.y = M_data.object_map[ii].y_center
             marker_name.pose.position.z = 2*marker.pose.position.z + 0.1
             # Size of the text
-            marker_name.scale.x = 0.2
-            marker_name.scale.y = 0.2
-            marker_name.scale.z = 0.2
+            marker_name.scale.x = 0.4
+            marker_name.scale.y = 0.4
+            marker_name.scale.z = 0.4
             marker_name.text = name
             marker_name.ns = name + str(ii)
 
@@ -192,7 +199,12 @@ while not rospy.is_shutdown():
             # Size:        
             marker.scale.x = 2*M_data.object_map[ii].a
             marker.scale.y = 2*M_data.object_map[ii].b
-            marker.scale.z = 2*(np.absolute(marker.scale.x*np.cos(M_data.object_map[ii].angle)) + np.absolute(marker.scale.y*np.sin(M_data.object_map[ii].angle)))*height_factor
+            
+            angle_O = M_data.object_map[ii].angle
+            if angle_O <= np.pi and angle_O >= 0:
+                marker.scale.z = height_factor * marker.scale.x * np.sin(angle_O)
+            else:
+                marker.scale.z = -height_factor * marker.scale.x * np.sin(angle_O)
             # Location of the TV:
             marker.pose.position.x = M_data.object_map[ii].x_center
             marker.pose.position.y = M_data.object_map[ii].y_center
@@ -219,9 +231,9 @@ while not rospy.is_shutdown():
             marker_name.pose.orientation.z = z_q
             marker_name.pose.orientation.w = w_q
             # Colour of text
-            marker_name.color.r = 200
-            marker_name.color.g = 200
-            marker_name.color.b = 200
+            marker_name.color.r = 0
+            marker_name.color.g = 0
+            marker_name.color.b = 0
             marker_name.color.a = 1
             # Rest of things:
             marker_name.id = 10
@@ -232,9 +244,9 @@ while not rospy.is_shutdown():
             marker_name.pose.position.y = M_data.object_map[ii].y_center
             marker_name.pose.position.z = 2*marker.pose.position.z + 0.1
             # Size of the text
-            marker_name.scale.x = 0.2
-            marker_name.scale.y = 0.2
-            marker_name.scale.z = 0.2
+            marker_name.scale.x = 0.4
+            marker_name.scale.y = 0.4
+            marker_name.scale.z = 0.4
 
             list_marker.markers.append(marker_name)
             continue

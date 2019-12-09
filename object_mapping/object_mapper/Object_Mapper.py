@@ -17,27 +17,9 @@ def OG_callback(data):
     global Theta_list
     Theta_list = data
 
-
-    
-
-# Initial node:
-rospy.init_node('List_of_mapped_objects', anonymous=True)
-# Publishers:
-OM_publisher = rospy.Publisher('/object_mapped_values',Object_Map,queue_size=10)
-# Subscribers:
-Theta_list_sub = rospy.Subscriber('/Theta_List',OG_List,OG_callback)
-rospy.wait_for_message('/Theta_List',OG_List)
-
-object_mapped_values = Object_Map()
-object_class_list = []
-objects_center = np.array([0,0])
-
-r = rospy.Rate(5)
-
-while not rospy.is_shutdown():
-    r.sleep()
-    # Globals:
-    global Theta_list
+    object_mapped_values = Object_Map()
+    object_class_list = []
+    objects_center = np.array([0,0])
     data = Theta_list
     
 
@@ -110,3 +92,22 @@ while not rospy.is_shutdown():
             object_mapped_values.object_map[index].cls_num = object_class_list[index].cls_num
 
         OM_publisher.publish(object_mapped_values)
+
+    
+
+# Initial node:
+rospy.init_node('List_of_mapped_objects', anonymous=True)
+# Publishers:
+OM_publisher = rospy.Publisher('/object_mapped_values',Object_Map,queue_size=10)
+
+
+r = rospy.Rate(5)
+
+while not rospy.is_shutdown():
+    r.sleep()
+    # Subscribers:
+    Theta_list_sub = rospy.Subscriber('/Theta_List',OG_List,OG_callback)
+    rospy.wait_for_message('/Theta_List',OG_List)
+    # Globals:
+    global Theta_list
+    

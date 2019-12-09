@@ -15,7 +15,7 @@ from std_msgs.msg import Float64
 import rospkg 
 
 
-slim = tf.contrib.slim
+#slim = tf.contrib.slim
 
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
@@ -61,7 +61,7 @@ rate = rospy.Rate(5)
 
 while not rospy.is_shutdown():
     #ret_val, img = cam.read()
-    global cv_img
+    #global cv_img
     L_output = SSD_Outputs()
     flag = 0
     img = cv_img
@@ -82,6 +82,9 @@ while not rospy.is_shutdown():
 
             output.x_min = xmin
             output.x_max = xmax
+            output.y_min = ymin
+            output.y_max = ymax
+            output.height_factor = (ymax-ymin)/(xmax-xmin)
             output.cls = cls_id
 
             for p in probs[i]:
@@ -109,6 +112,8 @@ while not rospy.is_shutdown():
         output.x_min = -1
         output.x_max = -1
         output.cls = -1
+        output.y_min = -1
+        output.y_max = -1
         L_output.outputs.append(output)
         
     Im_outs_Pub.publish(L_output)  

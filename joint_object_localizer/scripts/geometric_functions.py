@@ -53,8 +53,8 @@ def GMM_Prior(mu,sigma,Z):
 
 # R - robot, c - old center
 def New_Ce_array(x_c,y_c,x_R,y_R,yaw):
-    x = x_R +  x_c*np.cos(yaw) - y_c*np.sin(yaw) + 0.15*np.cos(yaw)
-    y = y_R +  y_c*np.cos(yaw) + x_c*np.sin(yaw) + 0.15*np.sin(yaw)
+    x = x_R +  x_c*np.cos(yaw) - y_c*np.sin(yaw) + 0.25*np.cos(yaw)
+    y = y_R +  y_c*np.cos(yaw) + x_c*np.sin(yaw) + 0.25*np.sin(yaw)
    
     # Return the real pose of the point after changing it from the view of the laser:
     return np.array([x,y])
