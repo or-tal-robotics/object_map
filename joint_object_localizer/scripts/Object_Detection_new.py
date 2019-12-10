@@ -54,6 +54,7 @@ A_Round = np.array(rospy.get_param('/Array/round'))
 A_Rectangle = np.array(rospy.get_param('/Array/rectangle'))
 A_Elliptical = np.array(rospy.get_param('/Array/elliptical'))
 Object_cls_list = np.array(rospy.get_param('/Array/object_list'))
+correction_factor = rospy.get_param('/Cord_cor/Simulation/Correction')
 
 r = rospy.Rate(5)
 
@@ -147,7 +148,7 @@ while not rospy.is_shutdown():
             Dist_check = Dist_check[Dist_check != 0]
             if np.amin(Dist_check) > 2:
                 continue
-            print 'Close enough, starting.'
+            print ('Close enough, starting.')
             for i in range (0,size):
                 
                 if R[i] == 0:
@@ -194,7 +195,7 @@ while not rospy.is_shutdown():
                     #if circle_minimized_values.x[0]**2 + circle_minimized_values.x[1]**2 > 4:
                         #continue
                     # Entering the found data:
-                    v0 = New_Ce_array(circle_minimized_values.x[0],circle_minimized_values.x[1],x_R,y_R,yaw)
+                    v0 = New_Ce_array(circle_minimized_values.x[0],circle_minimized_values.x[1],x_R,y_R,yaw,correction_factor)
                     Theta_Object.probabilities = data.outputs[ii].probability_distribution
                     Theta_Object.x_center = v0[0]
                     Theta_Object.y_center = v0[1]
@@ -208,7 +209,7 @@ while not rospy.is_shutdown():
                     Theta_list.object_list.append(Theta_Object)
                     Norm_factor += circle_minimized_values.fun
                     
-                    print 'Found ' + str(counter)
+                    print ('Found ' + str(counter))
                     
                     
                     
@@ -236,7 +237,7 @@ while not rospy.is_shutdown():
 
                     #if rectangle_minimized_values.x[0]**2 + rectangle_minimized_values.x[1]**2 > 9:
                         #continue
-                    Theta_Object.x_center , Theta_Object.y_center = New_Ce_array(rectangle_minimized_values.x[0] ,rectangle_minimized_values.x[1],x_R,y_R,yaw)
+                    Theta_Object.x_center , Theta_Object.y_center = New_Ce_array(rectangle_minimized_values.x[0] ,rectangle_minimized_values.x[1],x_R,y_R,yaw,correction_factor)
                     Theta_Object.a = rectangle_minimized_values.x[3]
                     Theta_Object.b = rectangle_minimized_values.x[4]
                     Theta_Object.angle = rectangle_minimized_values.x[2] + yaw
@@ -246,7 +247,7 @@ while not rospy.is_shutdown():
                     Norm_factor += rectangle_minimized_values.fun
                     
                     Theta_list.object_list.append(Theta_Object)
-                    print 'Found ' + str(counter)
+                    print ('Found ' + str(counter))
                     
                 # cat,dog:
                 elif jj in A_Elliptical:
@@ -272,7 +273,7 @@ while not rospy.is_shutdown():
                         #continue
                     # Entering the found data:
                     Theta_Object.probabilities = data.outputs[ii].probability_distribution
-                    Theta_Object.x_center , Theta_Object.y_center = New_Ce_array(elliptical_minimized_values.x[0] ,elliptical_minimized_values.x[1],x_R,y_R,yaw)
+                    Theta_Object.x_center , Theta_Object.y_center = New_Ce_array(elliptical_minimized_values.x[0] ,elliptical_minimized_values.x[1],x_R,y_R,yaw,correction_factor)
                     Theta_Object.a = elliptical_minimized_values.x[3]
                     Theta_Object.b = elliptical_minimized_values.x[4]
                     Theta_Object.angle = elliptical_minimized_values.x[2] + yaw
@@ -282,7 +283,7 @@ while not rospy.is_shutdown():
                     Norm_factor += elliptical_minimized_values.fun
 
                     Theta_list.object_list.append(Theta_Object)
-                    print 'Found ' + str(counter)
+                    print ('Found ' + str(counter))
             
             
             for kk in range(0,counter):

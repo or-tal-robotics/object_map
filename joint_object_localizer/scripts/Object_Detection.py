@@ -55,6 +55,7 @@ A_Round = rospy.get_param('/Array/round')
 A_Rectangle = rospy.get_param('/Array/rectangle')
 A_Elliptical = rospy.get_param('/Array/elliptical')
 Object_cls_list = np.array(rospy.get_param('/Array/object_list'))
+correction_factor = rospy.get_param('/Cord_cor/Simulation/Correction')
 
 r = rospy.Rate(5)
 global Robot_Odometry
@@ -122,10 +123,10 @@ while not rospy.is_shutdown():
         R_qy = Robot_Odometry.orientation.y
         R_qz = Robot_Odometry.orientation.z
         R_qw = Robot_Odometry.orientation.w
-
+        '''
         [yaw, pitch, roll] = quaternion_to_euler(R_qx,R_qy,R_qz,R_qw)
         
-        '''
+        
         # Location of the robot from slam_out_pose: 
         x_R = Robot_Pose.pose.position.x
         y_R = Robot_Pose.pose.position.y
@@ -185,7 +186,7 @@ while not rospy.is_shutdown():
             if circle_minimized_values.x[0]**2 + circle_minimized_values.x[1]**2 > 4:
                 continue
             # Entering the found data:
-            v0 = New_Ce_array(circle_minimized_values.x[0],circle_minimized_values.x[1],x_R,y_R,yaw)
+            v0 = New_Ce_array(circle_minimized_values.x[0],circle_minimized_values.x[1],x_R,y_R,yaw,correction_factor)
             Theta_Object.probabilities = data.outputs[ii].probability_distribution
             Theta_Object.x_center = v0[0]
             Theta_Object.y_center = v0[1]
@@ -226,7 +227,7 @@ while not rospy.is_shutdown():
             if rectangle_minimized_values.x[0]**2 + rectangle_minimized_values.x[1]**2 > 9:
                 continue
             Theta_Object.probabilities = data.outputs[ii].probability_distribution
-            Theta_Object.x_center , Theta_Object.y_center = New_Ce_array(rectangle_minimized_values.x[0] ,rectangle_minimized_values.x[1],x_R,y_R,yaw)
+            Theta_Object.x_center , Theta_Object.y_center = New_Ce_array(rectangle_minimized_values.x[0] ,rectangle_minimized_values.x[1],x_R,y_R,yaw,correction_factor)
             Theta_Object.a = rectangle_minimized_values.x[3]
             Theta_Object.b = rectangle_minimized_values.x[4]
             Theta_Object.angle = rectangle_minimized_values.x[2] + yaw
@@ -261,7 +262,7 @@ while not rospy.is_shutdown():
                 continue
             # Entering the found data:
             Theta_Object.probabilities = data.outputs[ii].probability_distribution
-            Theta_Object.x_center , Theta_Object.y_center = New_Ce_array(elliptical_minimized_values.x[0] ,elliptical_minimized_values.x[1],x_R,y_R,yaw)
+            Theta_Object.x_center , Theta_Object.y_center = New_Ce_array(elliptical_minimized_values.x[0] ,elliptical_minimized_values.x[1],x_R,y_R,yaw,correction_factor)
             Theta_Object.a = elliptical_minimized_values.x[3]
             Theta_Object.b = elliptical_minimized_values.x[4]
             Theta_Object.angle = elliptical_minimized_values.x[2] + yaw

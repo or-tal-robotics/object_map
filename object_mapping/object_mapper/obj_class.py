@@ -4,7 +4,7 @@
 import rospy
 import numpy as np
 import pandas as pd
-import rospkg 
+#import rospkg 
 
 '''
 global CM
@@ -18,6 +18,23 @@ CM = pd.read_csv(pa+"/object_mapper/confusion_matrix_corrected.csv")
 CM = (np.array(CM)[:,1:]).T
 '''
 
+# updating location and sizes:
+def Theta_updater(x_old,x_new,
+                y_old,y_new,
+                r_old,r_new,
+                a_old,a_new,
+                b_old,b_new,
+                phi_old,phi_new):
+
+                x = (x_old + x_new)/2
+                y = (y_old + y_new)/2
+                r = (r_old + r_new)/2
+                a = (a_old + a_new)/2
+                b = (b_old + b_new)/2
+                phi = (phi_old + phi_new)/2
+
+                return x , y , r , a , b , phi
+    
 
 # Updating the Probabilities of every object with consideration for the old ones:
 def Updated_Probabilities_and_Cls(old_probability,new_probability,new_cls):

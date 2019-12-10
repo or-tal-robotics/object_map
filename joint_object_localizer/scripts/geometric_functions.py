@@ -11,6 +11,7 @@ global Object_cls_list
 Object_cls_list = np.array(rospy.get_param('/Array/object_list'))
 
 
+
 def _Rearrange_SSD_probability(Old_SSD_Probabilities):
     Old_SSD_Probabilities = np.array(Old_SSD_Probabilities)
     global Object_cls_list
@@ -52,7 +53,7 @@ def GMM_Prior(mu,sigma,Z):
     return np.sum(L)
 
 # R - robot, c - old center
-def New_Ce_array(x_c,y_c,x_R,y_R,yaw):
+def New_Ce_array(x_c,y_c,x_R,y_R,yaw,correction):
     x = x_R +  x_c*np.cos(yaw) - y_c*np.sin(yaw) + 0.3*np.cos(yaw)
     y = y_R +  y_c*np.cos(yaw) + x_c*np.sin(yaw) + 0.3*np.sin(yaw)
    

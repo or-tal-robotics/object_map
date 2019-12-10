@@ -11,5 +11,8 @@
     <group ns="Cov">
         <rosparam file="$(find joint_object_localizer)/config/theta_cov.yaml" />
     </group>
-
+    
+    <group ns="Cord_cor">
+        <rosparam file="$(find joint_object_localizer)/config/correction_factor.yaml.yaml" />
+        </group>
 </launch>
