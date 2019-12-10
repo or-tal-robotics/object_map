@@ -8,6 +8,8 @@
 
 <include file="$(find komodo_demo)/launch/object_map.launch" />
 
+<include file="$(find komodo_demo)/launch/joystick_map.launch" />
+
 <include file="$(find gazebo_demo)/launch/object_yaml.launch" />
 
 
