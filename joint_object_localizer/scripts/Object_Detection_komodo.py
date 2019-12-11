@@ -10,7 +10,7 @@ from geometric_functions import Likelihood, quaternion_to_euler, New_Ce_array
 # Msgs:
 from object_detector_ssd_tf_ros.msg import SSD_Outputs
 from joint_object_localizer.msg import Object_Geometry,OG_List
-from nav_msgs.msg import Odometry
+
 from geometry_msgs.msg import PoseStamped , Point32
 from sensor_msgs.msg import LaserScan , PointCloud
 
@@ -31,10 +31,7 @@ def SSD_callback(data):
     global SSD_info
     SSD_info = data
 
-def Odom_callback(data):
-    global Robot_Odometry
-    Robot_Odometry = data.pose.pose
-        
+
 
 rospy.init_node('Theta_values', anonymous=True)
 # Publisher:
@@ -45,10 +42,6 @@ scan_point_sub = rospy.Subscriber('/scan' ,LaserScan , callback_laser )
 rospy.wait_for_message('/scan',LaserScan)
 Robot_sub = rospy.Subscriber('/slam_out_pose',PoseStamped,Robot_callback)
 rospy.wait_for_message('/slam_out_pose',PoseStamped)
-'''
-Robot_World_Location_sub = rospy.Subscriber('/odom',Odometry,Odom_callback)
-rospy.wait_for_message('/odom',Odometry)
-'''
 SSD_sub = rospy.Subscriber('/im_info',SSD_Outputs,SSD_callback,queue_size=1)
 rospy.wait_for_message('/im_info',SSD_Outputs)
 
@@ -84,7 +77,7 @@ while not rospy.is_shutdown():
     
     
     
-    
+    # ----------------------Starting to procces the data---------------------------
     for ii in range (0,len(data.outputs)):
 
         Theta_Object = Object_Geometry()
@@ -93,16 +86,15 @@ while not rospy.is_shutdown():
         x_max_new = data.outputs[ii].x_max
         y_min_new = data.outputs[ii].y_min
         y_max_new = data.outputs[ii].y_max
+        cls_num = data.outputs[ii].cls
+        Theta_Object.height_factor = data.outputs[ii].height_factor
 
+        # In case the object is too high or too low.
         if y_min_new > 200 or y_max_new < 120:
             print ('Not in a good height')
             continue
 
-
-        cls_num = data.outputs[ii].cls
-        Theta_Object.height_factor = data.outputs[ii].height_factor
-        
-        
+ 
         # In case the object is not a one that can be stationed in the map:
         if cls_num not in Object_cls_list:
             continue
@@ -122,25 +114,18 @@ while not rospy.is_shutdown():
         R_qy = Robot_Pose.pose.orientation.y
         R_qz = Robot_Pose.pose.orientation.z
         R_qw = Robot_Pose.pose.orientation.w
-        '''
-        # Orientation of the robot from the Odometry:
-        R_qx = Robot_Odometry.orientation.x
-        R_qy = Robot_Odometry.orientation.y
-        R_qz = Robot_Odometry.orientation.z
-        R_qw = Robot_Odometry.orientation.w
-        '''
-        [yaw, pitch, roll] = quaternion_to_euler(R_qx,R_qy,R_qz,R_qw)
         
+        # Quaternion angle to euler angle: 
+        [yaw, pitch, roll] = quaternion_to_euler(R_qx,R_qy,R_qz,R_qw)
         
         # Location of the robot from slam_out_pose: 
         x_R = Robot_Pose.pose.position.x
         y_R = Robot_Pose.pose.position.y
-        '''
-        # Location of the robot from Odometry: 
-        x_R = Robot_Odometry.position.x
-        y_R = Robot_Odometry.position.y
-        '''
+        
+        # Empty array to add the xy points:
         las_points = np.zeros((2*size + 1,2))
+
+        # Getting the distances from the sensor:
         R = np.array(scan_point.ranges)
 
         # Initializing an inf values:
@@ -149,14 +134,17 @@ while not rospy.is_shutdown():
         # Initializing an inf values:
         R[np.isnan(R)] = 0
 
+        # Checking info about the location of the object:
         Dist_check = np.array(R[angle_min:angle_max])
         Dist_check = Dist_check[Dist_check != 0]
+
+        # If there are not enough measuremrnts:
         if len(Dist_check) < 4:
             continue
-
+        # If object is too far away:
         if np.amin(Dist_check) > 1:
-            
             continue
+        
         print ('Close enough, starting.')
 
         P = PointCloud()
