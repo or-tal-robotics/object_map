@@ -23,7 +23,8 @@ def OG_callback(data):
 rospy.init_node('List_of_mapped_objects', anonymous=True)
 # Publishers:
 OM_publisher = rospy.Publisher('/object_mapped_values',Object_Map,queue_size=10)
-
+A_Rectangle = rospy.get_param('/Array/rectangle')
+A_Elliptical = rospy.get_param('/Array/elliptical')
 
 rr = rospy.Rate(10)
 object_class_list = []
@@ -79,8 +80,14 @@ while not rospy.is_shutdown():
 
         
         dist,index = closest_node(new_center,objects_center)
+
         env = Search_Radius(3*object_class_list[index].r,object_class_list[index].a,object_class_list[index].b)
         
+        if index in A_Elliptical:
+            env = env * 2.2
+        elif index in A_Rectangle:
+            env = env * 1.2
+
         if dist > env:
             print ('Adding a new object.')
             # Adding the object to the map msg:
