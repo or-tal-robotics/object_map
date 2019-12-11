@@ -10,26 +10,34 @@ import pandas as pd
 from joint_object_localizer.msg import OG_List
 from object_mapping.msg import Object,Object_Map
 
-global object_mapped_values , object_class_list
-
-
-object_class_list = []
-object_mapped_values = Object_Map()    
-objects_center = np.array([0,0])
+global Theta_list
 
 def OG_callback(data):
 
     # The subs:
     global Theta_list
-    global object_class_list
-    global object_mapped_values
-    global objects_center
     Theta_list = data
 
     
+# Initial node:
+rospy.init_node('List_of_mapped_objects', anonymous=True)
+# Publishers:
+OM_publisher = rospy.Publisher('/object_mapped_values',Object_Map,queue_size=10)
+
+
+rr = rospy.Rate(10)
+object_class_list = []
+object_mapped_values = Object_Map()    
+objects_center = np.array([0,0])
+
+while not rospy.is_shutdown():
+    
+    # Subscribers:
+    Theta_list_sub = rospy.Subscriber('/Theta_List',OG_List,OG_callback)
+    rospy.wait_for_message('/Theta_List',OG_List)
+
     data = Theta_list
     
-
     for ii in range(0,len(data.object_list)):
         
         
@@ -49,6 +57,7 @@ def OG_callback(data):
         
         # The first object initializer:
         if len(object_class_list) == 0:
+            print ('Adding first object.')
             # Adding the first object to the map msg:
             object_mapped_values.object_map.append(obj_new)
             OM_publisher.publish(object_mapped_values)
@@ -65,16 +74,15 @@ def OG_callback(data):
             object_class_list.append(object_class)
             # Adding the first center to numpy array:
             objects_center = np.array([[object_class.x_center,object_class.y_center]])
-            print ('Added a new object.')
+            print ('Added first object.')
             continue
 
         
         dist,index = closest_node(new_center,objects_center)
-        env = Search_Radius(object_class_list[index].r,object_class_list[index].a,object_class_list[index].b)
-        #env = 0.2
-
+        env = Search_Radius(3*object_class_list[index].r,object_class_list[index].a,object_class_list[index].b)
+        
         if dist > env:
-            
+            print ('Adding a new object.')
             # Adding the object to the map msg:
             object_mapped_values.object_map.append(obj_new)
             OM_publisher.publish(object_mapped_values)
@@ -94,16 +102,12 @@ def OG_callback(data):
             print ('Added a new object.')
         
         else:
-            object_class_list[index].prob_distribution ,
-            object_class_list[index].cls_num = \
-                Updated_Probabilities_and_Cls(object_class_list[index].prob_distribution,
-                obj_new.probabilities,obj_new.cls_num)
+            print ('Start to update.')
+            object_class_list[index].prob_distribution ,object_class_list[index].cls_num = Updated_Probabilities_and_Cls(object_class_list[index].prob_distribution,obj_new.probabilities,obj_new.cls_num)
 
-            object_mapped_values.object_map[index].probabilities = \
-                object_class_list[index].prob_distribution
+            object_mapped_values.object_map[index].probabilities = object_class_list[index].prob_distribution
 
-            object_mapped_values.object_map[index].cls_num = \
-                object_class_list[index].cls_num
+            object_mapped_values.object_map[index].cls_num = np.int16(object_class_list[index].cls_num)
 
             # Updating theta:
             [x,y,r,a,b,phi] = Theta_updater(obj_new.x_center,object_class_list[index].x_center,
@@ -131,21 +135,5 @@ def OG_callback(data):
             print ('Updated an existed object.')
         
         OM_publisher.publish(object_mapped_values)
-
-    
-
-# Initial node:
-rospy.init_node('List_of_mapped_objects', anonymous=True)
-# Publishers:
-OM_publisher = rospy.Publisher('/object_mapped_values',Object_Map,queue_size=10)
-
-
-r = rospy.Rate(10)
-
-while not rospy.is_shutdown():
-    
-    # Subscribers:
-    Theta_list_sub = rospy.Subscriber('/Theta_List',OG_List,OG_callback)
-    rospy.wait_for_message('/Theta_List',OG_List)
-    r.sleep()
+    rr.sleep()
     

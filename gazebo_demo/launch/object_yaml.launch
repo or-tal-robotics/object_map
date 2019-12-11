@@ -13,6 +13,6 @@
     </group>
     
     <group ns="Cord_cor">
-        <rosparam file="$(find joint_object_localizer)/config/correction_factor.yaml.yaml" />
+        <rosparam file="$(find joint_object_localizer)/config/correction_factor.yaml" />
         </group>
 </launch>
