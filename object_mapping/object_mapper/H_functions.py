@@ -24,7 +24,7 @@ def q_i(mi,mo):
             theta_i = np.array([mi.x_center[ii],mi.y_center[ii],mi.angle[ii],mi.a[ii],mi.b[ii]])
             theta_o = np.array([mo.x_center[ii],mo.y_center[ii],mo.angle[ii],mo.a[ii],mi.b[ii]])
         
-        sigma = np.array(rospy.get_param('/Cov/o'+str(mi.cls_num[ii])))
+        sigma = np.array(rospy.get_param('/Cov/o' + str(mi.cls_num[ii])))
         f_mi_mo = mn.pdf(theta_o, mean = theta_i ,cov = sigma)
 
         q_i += mi.prob_distribution[ii] * mo.prob_distribution[ii] * f_mi_mo

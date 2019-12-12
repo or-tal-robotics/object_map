@@ -13,7 +13,7 @@ from object_mapping.msg import Single_Class , M_i , M
 
 def M_o_callback(data):
 
-    epsilon = 0.05
+    epsilon = 0.02
     global M_list_class
     # The subs:
     global Theta_list
@@ -62,6 +62,7 @@ def M_o_callback(data):
             q = []
             for ii in range(0,len(M_list_class)):
                 q.append(q_i(M_list_class[ii],Mo))
+                
             ii = np.argmax(q)
 
             if q[ii] < epsilon:
