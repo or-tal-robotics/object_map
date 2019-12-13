@@ -9,15 +9,14 @@ from object_mapping.msg import M
 def callback_map(data):
     global O_map
     O_map = data
-    workbook = xlsxwriter.Workbook('Results3_second_round.xlsx')
-    #workbook = xlsxwriter.Workbook('Results3.xlsx')
+    workbook = xlsxwriter.Workbook('dog1.xlsx')
     worksheet = workbook.add_worksheet()
     row = 0
     column = 0
 
     for ii in range(0,len(O_map.M)):
         
-        names = [str(ii),'bicycle','bird','bottle','cat','dog','motorbike','person','pottedplant','sheep','sofa','tvmonitor']
+        names = ['obj','dog']
         for name in names:
 
             worksheet.write(row, column, name)
@@ -30,9 +29,10 @@ def callback_map(data):
         probabilities = []
 
         for jj in range(0,len(O_map.M[ii].m_i)):
-            x.append(O_map.M[ii].m_i[jj].x_center)
-            y.append(O_map.M[ii].m_i[jj].y_center)
-            probabilities.append(O_map.M[ii].m_i[jj].probability)
+            if O_map.M[ii].m_i[jj].cls_num == 12:
+                x.append(O_map.M[ii].m_i[jj].x_center)
+                y.append(O_map.M[ii].m_i[jj].y_center)
+                probabilities.append(O_map.M[ii].m_i[jj].probability)
         
         worksheet.write(row, column, 'x')
         column += 1
@@ -61,7 +61,7 @@ def callback_map(data):
 
     workbook.close()
 
-rospy.init_node('xls_Objects_node', anonymous=True)
+rospy.init_node('xls_dog_node', anonymous=True)
 
 
 #Subsctibers:

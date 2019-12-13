@@ -62,8 +62,9 @@ while not rospy.is_shutdown():
     r.sleep()
 
     data = SSD_info
+    
+    # If not a single object is seen by the camera:
     if data.outputs[0].cls == -1:
-
         M_S = M_Suggested_List()
         M_S.M_list = []
         M_list_publisher.publish(M_S)
@@ -120,45 +121,54 @@ while not rospy.is_shutdown():
             R_qy = Robot_Pose.pose.orientation.y
             R_qz = Robot_Pose.pose.orientation.z
             R_qw = Robot_Pose.pose.orientation.w
+
+            # Location of the robot from slam_out_pose: 
+            x_R = Robot_Pose.pose.position.x
+            y_R = Robot_Pose.pose.position.y
             '''
+
             # Orientation of the robot from the Odometry:
             R_qx = Robot_Odometry.orientation.x
             R_qy = Robot_Odometry.orientation.y
             R_qz = Robot_Odometry.orientation.z
             R_qw = Robot_Odometry.orientation.w
 
-            [yaw, pitch, roll] = quaternion_to_euler(R_qx,R_qy,R_qz,R_qw)
-            
-            '''
-            # Location of the robot from slam_out_pose: 
-            x_R = Robot_Pose.pose.position.x
-            y_R = Robot_Pose.pose.position.y
-            '''
             # Location of the robot from Odometry: 
             x_R = Robot_Odometry.position.x
             y_R = Robot_Odometry.position.y
 
+            # Euler orientation:
+            [yaw, pitch, roll] = quaternion_to_euler(R_qx,R_qy,R_qz,R_qw)
+            
+            # Empty vector in xy coordinates for all the observed laser scan:
             las_points = np.zeros((2*size + 1,2))
+
+            # Reading from the laser sensor:
             R = np.array(scan_point.ranges)
 
             # Initializing an inf values:
             R[np.isinf(R)] = 0
 
+            # Making sure the object is close enogh:
             Dist_check = np.array(R[angle_min:angle_max])
             Dist_check = Dist_check[Dist_check != 0]
             if np.amin(Dist_check) > 2:
                 continue
-            print ('Close enough, starting.')
+            
+            # Making the ranges measurements to xy vectors:
             for i in range (0,size):
-                
+                # Making sure the false laser scans will not affect our measurements:
                 if R[i] == 0:
                     las_points[i,0] = 100000
                     las_points[i,1] = 100000
                     continue
+                # x value of the vector:
                 las_points[i,0] = -R[i] * np.cos((size - i) * angle_jumps - np.pi)
+                # y value of the vector:
                 las_points[i,1] = R[i] * np.sin((size - i) * angle_jumps - np.pi)
                 
             for i in range (size,2*size+1):
+                # Making sure the false laser scans will not affect our measurements:
                 if R[i] == 0:
                     las_points[i,0] = 100000
                     las_points[i,1] = 100000
@@ -167,6 +177,7 @@ while not rospy.is_shutdown():
                 las_points[i,1] = R[i] * np.sin((i-size) * angle_jumps)
             
             counter = 0
+            # ------------------------Main algoritm start------------------------------------
             for jj in Object_cls_list:
                 
                 
@@ -179,23 +190,24 @@ while not rospy.is_shutdown():
                     # Initializing the circle array:
                     circle = np.array((las_points[angle_min:angle_max,:]))
 
-
                     bound_r = rospy.get_param('/object_list/o'+str(jj)+'/bound_r')
 
                     # Bounds for DE algoritm
-                    bounds = [ [np.amin(circle[:,0])-0.1 , np.amin([np.amax(circle[:,0])+0.1 , 2.5])] , \
-                        [np.amin(circle[:,1])-0.1,np.amin([np.amax(circle[:,1])+0.1 , 2.5])],bound_r,[-np.pi,np.pi]]
+                    bounds = [  [np.amin(circle[:,0])-0.1 , np.amin([np.amax(circle[:,0])+0.1 , 2.5])],
+                                [np.amin(circle[:,1])-0.1 , np.amin([np.amax(circle[:,1])+0.1 , 2.5])],
+                                bound_r]
                     
                     
                     C_class = Likelihood(class_number=jj,Z=circle,SSD_probability=SSD_probabilities)
                     # DE algoritm
-                    circle_minimized_values = differential_evolution(C_class.probability_for_circle,bounds \
-                        , maxiter = 100,  popsize=15, tol=0.00001)
-
-                    #if circle_minimized_values.x[0]**2 + circle_minimized_values.x[1]**2 > 4:
-                        #continue
-                    # Entering the found data:
-                    v0 = New_Ce_array(circle_minimized_values.x[0],circle_minimized_values.x[1],x_R,y_R,yaw,correction_factor)
+                    circle_minimized_values = differential_evolution(C_class.probability_for_circle,bounds,
+                                                                    maxiter = 100,  popsize=15, tol=0.00001)
+                    
+                    # Inserting the founded data:
+                    v0 = New_Ce_array(circle_minimized_values.x[0],
+                                    circle_minimized_values.x[1],
+                                    x_R,y_R,yaw,correction_factor)
+                    
                     Theta_Object.probabilities = data.outputs[ii].probability_distribution
                     Theta_Object.x_center = v0[0]
                     Theta_Object.y_center = v0[1]
@@ -205,15 +217,16 @@ while not rospy.is_shutdown():
                     Theta_Object.angle = 0
                     Theta_Object.Final_Likelihood = circle_minimized_values.fun
                     Theta_Object.cls = jj
-                    
+                    # Adding the founded data:
                     Theta_list.object_list.append(Theta_Object)
+                    # Making a sum to normalize the probabilities:
                     Norm_factor += circle_minimized_values.fun
                     
                     print ('Found ' + str(counter))
                     
                     
                     
-                # Box:
+                # Rectangle objects:
                 elif jj in A_Rectangle:
 
                     Theta_Object = Object_Geometry()
@@ -224,32 +237,36 @@ while not rospy.is_shutdown():
                     bound_a = rospy.get_param('/object_list/o'+str(jj)+'/bound_a')
                     bound_b = rospy.get_param('/object_list/o'+str(jj)+'/bound_b')
                     # Bounds for DE algoritm
-                    bounds_R = [ [np.amin(box[:,0])-0.1 , np.amin([np.amax(box[:,0])+0.1 , 3])] , \
-                        [np.amin(box[:,1])-0.1,np.amin([np.amax(box[:,1])+0.1 , 3])],[-np.pi,np.pi],bound_a,bound_b]
+                    bounds_R = [ [np.amin(box[:,0])-0.1 , np.amin([np.amax(box[:,0])+0.1 , 3])],
+                                 [np.amin(box[:,1])-0.1 , np.amin([np.amax(box[:,1])+0.1 , 3])],
+                                 [-np.pi,np.pi],
+                                  bound_a,
+                                  bound_b]
 
                     
                     R_class = Likelihood(class_number=jj , Z=box, SSD_probability=SSD_probabilities)
                     # DE angoritm:
-                    rectangle_minimized_values = differential_evolution(R_class.probability_for_Rectangle,bounds_R \
-                        , maxiter = 100,  popsize=15, tol=0.00001)
-                    # Entering the found data:
-
-
-                    #if rectangle_minimized_values.x[0]**2 + rectangle_minimized_values.x[1]**2 > 9:
-                        #continue
-                    Theta_Object.x_center , Theta_Object.y_center = New_Ce_array(rectangle_minimized_values.x[0] ,rectangle_minimized_values.x[1],x_R,y_R,yaw,correction_factor)
+                    rectangle_minimized_values = differential_evolution(R_class.probability_for_Rectangle,bounds_R,
+                                                                        maxiter = 50,  popsize=5, tol=0.00001)
+                    
+                    # Inserting the founded data:
+                    Theta_Object.x_center , Theta_Object.y_center = New_Ce_array(rectangle_minimized_values.x[0],
+                                                                                rectangle_minimized_values.x[1],
+                                                                                x_R,y_R,yaw,correction_factor)
                     Theta_Object.a = rectangle_minimized_values.x[3]
                     Theta_Object.b = rectangle_minimized_values.x[4]
                     Theta_Object.angle = rectangle_minimized_values.x[2] + yaw
                     Theta_Object.r = 0
                     Theta_Object.cls = jj
                     Theta_Object.Final_Likelihood = rectangle_minimized_values.fun
-                    Norm_factor += rectangle_minimized_values.fun
-                    
+                    # Adding the founded data:
                     Theta_list.object_list.append(Theta_Object)
+                    # Making a sum to normalize the probabilities:
+                    Norm_factor += rectangle_minimized_values.fun
+
                     print ('Found ' + str(counter))
                     
-                # cat,dog:
+                # Elliptical objects:
                 elif jj in A_Elliptical:
                     
                     Theta_Object = Object_Geometry()
@@ -260,18 +277,18 @@ while not rospy.is_shutdown():
                     bound_a = rospy.get_param('/object_list/o'+str(jj)+'/bound_a')
                     bound_b = rospy.get_param('/object_list/o'+str(jj)+'/bound_b')
                     # Bounds for DE algoritm
-                    bounds_E = [ [np.amin(ellipse[:,0])-0.1 , np.amin([np.amax(ellipse[:,0])+0.1 , 2])] , \
-                        [np.amin(ellipse[:,1])-0.1,np.amin([np.amax(ellipse[:,1])+0.1 , 2])],[0,np.pi],bound_a,bound_b]
+                    bounds_E = [ [np.amin(ellipse[:,0])-0.1 , np.amin([np.amax(ellipse[:,0])+0.1 , 2])],
+                                 [np.amin(ellipse[:,1])-0.1 , np.amin([np.amax(ellipse[:,1])+0.1 , 2])],
+                                 [0,np.pi],
+                                  bound_a,
+                                  bound_b]
 
                     E_class = Likelihood(class_number=jj , Z=ellipse , SSD_probability=SSD_probabilities)
                     # DE angoritm:
-                    elliptical_minimized_values = differential_evolution(E_class.probability_for_Ellipse,bounds_E \
-                        , maxiter = 100,  popsize=15, tol=0.00001)
+                    elliptical_minimized_values = differential_evolution(E_class.probability_for_Ellipse,bounds_E,
+                                                                            maxiter = 50,  popsize=5, tol=0.00001)
 
-                        
-                    #if elliptical_minimized_values.x[0]**2 + elliptical_minimized_values.x[1]**2 > 4:
-                        #continue
-                    # Entering the found data:
+                    # Inserting the founded data:
                     Theta_Object.probabilities = data.outputs[ii].probability_distribution
                     Theta_Object.x_center , Theta_Object.y_center = New_Ce_array(elliptical_minimized_values.x[0] ,elliptical_minimized_values.x[1],x_R,y_R,yaw,correction_factor)
                     Theta_Object.a = elliptical_minimized_values.x[3]
@@ -280,18 +297,19 @@ while not rospy.is_shutdown():
                     Theta_Object.r = 0
                     Theta_Object.cls = jj
                     Theta_Object.Final_Likelihood = elliptical_minimized_values.fun
-                    Norm_factor += elliptical_minimized_values.fun
-
+                    # Adding the founded data:
                     Theta_list.object_list.append(Theta_Object)
+                    # Making a sum to normalize the probabilities:
+                    Norm_factor += elliptical_minimized_values.fun
                     print ('Found ' + str(counter))
             
-            
+            # Normalize the probabilities:
             for kk in range(0,counter):
                 Theta_list.object_list[kk].Final_Likelihood = Theta_list.object_list[kk].Final_Likelihood / Norm_factor
                 
-
+            # Adding Mo:
             M_S.M_list.append(Theta_list)  
-        
+        # Publishing Mo
         M_list_publisher.publish(M_S)
 
 
