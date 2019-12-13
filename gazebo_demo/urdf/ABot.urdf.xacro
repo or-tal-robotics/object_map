@@ -211,6 +211,29 @@
     </inertial>
   </link>
 
+<link name="camera_link_2">
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+    <box size="0.01 0.01 0.01"/>
+      </geometry>
+    </collision>
+
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+    <box size="0.01 0.01 0.01"/>
+      </geometry>
+      <material name="red"/>
+    </visual>
+
+    <inertial>
+      <mass value="1e-5" />
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6" />
+    </inertial>
+  </link>
+
 <joint name="hokuyo_joint" type="fixed">
     <axis xyz="0 1 0" />
     <origin xyz="0.15 0 0.2" rpy="0 0 0"/>
@@ -246,6 +269,13 @@
     <origin xyz="0.2 0 0.25" rpy="0 0 0"/>
     <parent link="base_link"/>
     <child link="camera_link"/>
+  </joint>
+
+<joint name="camera_joint_2" type="fixed">
+    <axis xyz="0 0 0" />
+    <origin xyz="0 0 3.3" rpy="0 1.25 0"/>
+    <parent link="base_link"/>
+    <child link="camera_link_2"/>
   </joint>
 
 <gazebo reference="camera_link">
@@ -288,7 +318,45 @@
     </sensor>
   </gazebo>
 
- 
+<gazebo reference="camera_link_2">
+    <sensor type="camera" name="camera_top">
+      <update_rate>30.0</update_rate>
+      <camera name="head_2">
+        <horizontal_fov>1.3962634</horizontal_fov>
+        <image>
+          <width>640</width>
+          <height>480</height>
+          <format>R8G8B8</format>
+        </image>
+        <clip>
+          <near>0.02</near>
+          <far>300</far>
+        </clip>
+        <noise>
+          <type>gaussian</type>
+          <!-- Noise is sampled independently per pixel on each frame.
+               That pixel's noise value is added to each of its color
+               channels, which at that point lie in the range [0,1]. -->
+          <mean>0.0</mean>
+          <stddev>0.007</stddev>
+        </noise>
+      </camera>
+      <plugin name="camera_controller" filename="libgazebo_ros_camera.so">
+        <alwaysOn>true</alwaysOn>
+        <updateRate>30.0</updateRate>
+        <cameraName>/camera_up</cameraName>
+        <imageTopicName>image_raw_up</imageTopicName>
+        <cameraInfoTopicName>camera_info_up</cameraInfoTopicName>
+        <frameName>camera_link_2</frameName>
+        <hackBaseline>0.07</hackBaseline>
+        <distortionK1>0.0</distortionK1>
+        <distortionK2>0.0</distortionK2>
+        <distortionK3>0.0</distortionK3>
+        <distortionT1>0.0</distortionT1>
+        <distortionT2>0.0</distortionT2>
+      </plugin>
+    </sensor>
+  </gazebo> 
 
 <gazebo>
   <plugin name="differential_drive_controller" filename="libgazebo_ros_diff_drive.so">
@@ -347,5 +415,7 @@
   <xacro:property name="hokuyo_link" value="0.05" />
 
   <xacro:property name="camera_link" value="0.05" />
+
+  <xacro:property name="camera_link_2" value="0.05" />
 
 </robot>
