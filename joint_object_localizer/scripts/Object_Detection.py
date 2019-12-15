@@ -39,7 +39,7 @@ def Odom_callback(data):
 rospy.init_node('Theta_values', anonymous=True)
 # Publisher:
 
-Theta_list_pub = rospy.Publisher('/Theta_List',OG_List,queue_size = 10)
+Theta_list_pub = rospy.Publisher('/Theta_List',OG_List,queue_size = 12)
 # Subscribers:
 scan_point_sub = rospy.Subscriber('/scan' ,LaserScan , callback_laser )
 rospy.wait_for_message('/scan',LaserScan)
@@ -57,7 +57,7 @@ A_Elliptical = rospy.get_param('/Array/elliptical')
 Object_cls_list = np.array(rospy.get_param('/Array/object_list'))
 correction_factor = rospy.get_param('/Cord_cor/Simulation/Correction')
 
-r = rospy.Rate(5)
+r = rospy.Rate(7)
 global Robot_Odometry
 
 while not rospy.is_shutdown():
@@ -148,7 +148,7 @@ while not rospy.is_shutdown():
                 las_points[i,1] = 100000
                 continue
             las_points[i,0] = -R[i] * np.cos((size - i) * angle_jumps - np.pi)
-            las_points[i,1] = R[i] * np.sin((size - i) * angle_jumps - np.pi)
+            las_points[i,1] =  R[i] * np.sin((size - i) * angle_jumps - np.pi)
             
         for i in range (size,2*size+1):
             if R[i] == 0:
@@ -157,34 +157,32 @@ while not rospy.is_shutdown():
                 continue
             las_points[i,0] = R[i] * np.cos((i-size) * angle_jumps)
             las_points[i,1] = R[i] * np.sin((i-size) * angle_jumps)
-        
-
-        
+        # Making sure the object is close enogh:
+        Dist_check = np.array(R[angle_min:angle_max])
+        Dist_check = Dist_check[Dist_check != 0]
+        if np.amin(Dist_check) > 1.5:
+            continue
            
         # Round objects:
         if cls_num in A_Round:
             
-            
+            print('Found Round shape')
             # Initializing the circle array:
             circle = np.array((las_points[angle_min:angle_max,:]))
-
-            if np.amin(circle[:,0]**2 + circle[:,1]**2)>4:
-                continue
 
             bound_r = rospy.get_param('/object_list/o'+str(cls_num)+'/bound_r')
 
             # Bounds for DE algoritm
-            bounds = [ [np.amin(circle[:,0])-0.1 , np.amin([np.amax(circle[:,0])+0.1 , 2.5])] , \
-                [np.amin(circle[:,1])-0.1,np.amin([np.amax(circle[:,1])+0.1 , 2.5])],bound_r,[-np.pi,np.pi]]
+            bounds = [ [np.amin(circle[:,0])-0.1 , np.amin([np.amax(circle[:,0])+0.1 , 2.5])] ,
+                       [np.amin(circle[:,1])-0.1 , np.amin([np.amax(circle[:,1])+0.1 , 2.5])] ,
+                        bound_r]
             
             
             C_class = Likelihood(class_number=cls_num,Z=circle,SSD_probability=data.outputs[ii].probability_distribution)
             # DE algoritm
-            circle_minimized_values = differential_evolution(C_class.probability_for_circle,bounds \
-                , maxiter = 100,  popsize=15, tol=0.00001)
+            circle_minimized_values = differential_evolution(C_class.probability_for_circle,bounds,
+                                                            maxiter = 40,  popsize=10, tol=0.00001)
 
-            if circle_minimized_values.x[0]**2 + circle_minimized_values.x[1]**2 > 4:
-                continue
             # Entering the found data:
             v0 = New_Ce_array(circle_minimized_values.x[0],circle_minimized_values.x[1],x_R,y_R,yaw,correction_factor)
             Theta_Object.probabilities = data.outputs[ii].probability_distribution
@@ -198,34 +196,33 @@ while not rospy.is_shutdown():
             Theta_Object.cls = cls_num
             
             Theta_list.object_list.append(Theta_Object)
-            
+            print('Sending founded Round shape')
             
         # Box:
         elif cls_num in A_Rectangle:
 
             
+            print ('Found Rectangle shape')
+
             # Initializing the box array:
             box = np.array((las_points[angle_min:angle_max,:]))
-
-            if np.amin(box[:,0]**2 + box[:,1]**2)>4:
-                continue
 
             bound_a = rospy.get_param('/object_list/o'+str(cls_num)+'/bound_a')
             bound_b = rospy.get_param('/object_list/o'+str(cls_num)+'/bound_b')
             # Bounds for DE algoritm
-            bounds_R = [ [np.amin(box[:,0])-0.1 , np.amin([np.amax(box[:,0])+0.1 , 3])] , \
-                [np.amin(box[:,1])-0.1,np.amin([np.amax(box[:,1])+0.1 , 3])],[-np.pi,np.pi],bound_a,bound_b]
+            bounds_R = [ [np.amin(box[:,0])-0.1 , np.amin([np.amax(box[:,0])+0.1 , 3])] ,
+                         [np.amin(box[:,1])-0.1 , np.amin([np.amax(box[:,1])+0.1 , 3])] ,
+                         [-np.pi,-0.05],
+                          bound_a,
+                          bound_b ]
 
             
             R_class = Likelihood(class_number=cls_num , Z=box , SSD_probability=data.outputs[ii].probability_distribution)
             # DE angoritm:
-            rectangle_minimized_values = differential_evolution(R_class.probability_for_Rectangle,bounds_R \
-                , maxiter = 100,  popsize=15, tol=0.00001)
+            rectangle_minimized_values = differential_evolution(R_class.probability_for_Rectangle,bounds_R ,
+                                                                maxiter = 50, popsize=7, tol=0.00001)
+            
             # Entering the found data:
-
-
-            if rectangle_minimized_values.x[0]**2 + rectangle_minimized_values.x[1]**2 > 9:
-                continue
             Theta_Object.probabilities = data.outputs[ii].probability_distribution
             Theta_Object.x_center , Theta_Object.y_center = New_Ce_array(rectangle_minimized_values.x[0] ,rectangle_minimized_values.x[1],x_R,y_R,yaw,correction_factor)
             Theta_Object.a = rectangle_minimized_values.x[3]
@@ -234,32 +231,30 @@ while not rospy.is_shutdown():
             Theta_Object.r = 0
             Theta_Object.cls = cls_num
             
-            
             Theta_list.object_list.append(Theta_Object)
+            print ('Sending founded Rectangle shape')
             
         # cat,dog:
         elif cls_num in A_Elliptical:
             
+            print ('Found elliptical shape')
             # Initializing the box array:
             ellipse = np.array((las_points[angle_min:angle_max,:]))
-
-            if np.amin(ellipse[:,0]**2 + ellipse[:,1]**2)>4:
-                continue
 
             bound_a = rospy.get_param('/object_list/o'+str(cls_num)+'/bound_a')
             bound_b = rospy.get_param('/object_list/o'+str(cls_num)+'/bound_b')
             # Bounds for DE algoritm
-            bounds_E = [ [np.amin(ellipse[:,0])-0.1 , np.amin([np.amax(ellipse[:,0])+0.1 , 2])] , \
-                [np.amin(ellipse[:,1])-0.1,np.amin([np.amax(ellipse[:,1])+0.1 , 2])],[0,np.pi],bound_a,bound_b]
+            bounds_E = [ [np.amin(ellipse[:,0])-0.1 , np.amin([np.amax(ellipse[:,0])+0.1 , 2])] ,
+                         [np.amin(ellipse[:,1])-0.1 , np.amin([np.amax(ellipse[:,1])+0.1 , 2])] ,
+                         [-np.pi,-0.05],
+                          bound_a,
+                          bound_b ]
 
             E_class = Likelihood(class_number=cls_num , Z=ellipse , SSD_probability=data.outputs[ii].probability_distribution)
             # DE angoritm:
-            elliptical_minimized_values = differential_evolution(E_class.probability_for_Ellipse,bounds_E \
-                , maxiter = 100,  popsize=15, tol=0.00001)
+            elliptical_minimized_values = differential_evolution(E_class.probability_for_Ellipse,bounds_E ,
+                                                                    maxiter = 30,  popsize=5, tol=0.00001)
 
-                  
-            if elliptical_minimized_values.x[0]**2 + elliptical_minimized_values.x[1]**2 > 4:
-                continue
             # Entering the found data:
             Theta_Object.probabilities = data.outputs[ii].probability_distribution
             Theta_Object.x_center , Theta_Object.y_center = New_Ce_array(elliptical_minimized_values.x[0] ,elliptical_minimized_values.x[1],x_R,y_R,yaw,correction_factor)
@@ -270,9 +265,9 @@ while not rospy.is_shutdown():
             Theta_Object.cls = cls_num
             #Theta_Publisher.publish(Theta_Object)
             Theta_list.object_list.append(Theta_Object)
-       
-            
-            
+
+            print ('Sending founded elliptical shape')
+                    
     Theta_list_pub.publish(Theta_list)
 
 

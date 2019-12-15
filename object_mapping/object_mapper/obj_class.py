@@ -4,19 +4,7 @@
 import rospy
 import numpy as np
 import pandas as pd
-#import rospkg 
 
-'''
-global CM
-
-rospack = rospkg.RosPack()
-# get the file path for rospy_tutorials
-pa = rospack.get_path('object_mapping')
-
-# Confusion matrix
-CM = pd.read_csv(pa+"/object_mapper/confusion_matrix_corrected.csv")
-CM = (np.array(CM)[:,1:]).T
-'''
 
 # updating location and sizes:
 def Theta_updater(x_old,x_new,

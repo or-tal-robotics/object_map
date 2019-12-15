@@ -54,8 +54,8 @@ def GMM_Prior(mu,sigma,Z):
 
 # R - robot, c - old center
 def New_Ce_array(x_c,y_c,x_R,y_R,yaw,correction):
-    x = x_R +  x_c*np.cos(yaw) - y_c*np.sin(yaw) + 0.3*np.cos(yaw)
-    y = y_R +  y_c*np.cos(yaw) + x_c*np.sin(yaw) + 0.3*np.sin(yaw)
+    x = x_R +  x_c*np.cos(yaw) - y_c*np.sin(yaw) + correction*np.cos(yaw)
+    y = y_R +  y_c*np.cos(yaw) + x_c*np.sin(yaw) + correction*np.sin(yaw)
    
     # Return the real pose of the point after changing it from the view of the laser:
     return np.array([x,y])
@@ -74,6 +74,25 @@ def _Init_Ellipse(theta):
         y = y1 * np.cos(phi) + x1*np.sin(phi) + y0
         Ellipse_vector = np.array([x,y])
         return Ellipse_vector
+
+def _Distances_from_center_of_ellipse(theta,Z):
+
+    # Initializing and identifying variables:
+    Distance_Vector = []
+    x_c = theta[0]
+    y_c = theta[1]
+    angle = theta[2]
+    a = theta[3]
+    b = theta[4]
+
+    # Making a list of distances from the center of the ellipse:
+    for z in Z:
+
+        R_x = ((z[0]-x_c)*np.cos(angle) + (z[1]-y_c)*np.sin(angle))/(a)
+        R_y = ((z[0]-x_c)*np.sin(angle) - (z[1]-y_c)*np.cos(angle))/(b)
+        Distance_Vector.append(R_x**2 + R_y**2)
+
+    return np.array(Distance_Vector)
 
 def _Initializing_half_Rectangle(theta):
 
@@ -125,7 +144,6 @@ class Likelihood():
         
         R = theta[2]
 
-        
         sigma = 0.0005
         sigma_prior = rospy.get_param('/object_list/o'+str(self.class_number) + '/cov')
         r_mean = rospy.get_param('/object_list/o'+str(self.class_number) + '/r')
@@ -136,7 +154,6 @@ class Likelihood():
         Prior = GMM_Prior(R,sigma_prior,r_mean)
         
         return -Prior * L * self.Probability[self.class_number-1]
-        #return -np.sum(np.exp(-20*(R-r_c)**2))* np.exp(-0.7*(R-r_mean)**2)
         
     
 
@@ -158,27 +175,17 @@ class Likelihood():
 
             return -Prior* L * self.Probability[self.class_number-1]
             
-    '''
-    a_mean = rospy.get_param('/object_list/o'+str(class_number) + '/a')
-    b_mean = rospy.get_param('/object_list/o'+str(class_number) + '/b')
-
-    Rectangle_vector = _Initializing_half_Rectangle(theta).T
-    distances, idc = nbrs_obj.kneighbors(Rectangle_vector.T)
-
-    return -np.sum(np.exp(-10*distances**2) * np.exp(-0.2*(a - a_mean)**2) * np.exp(-0.2*(b - b_mean)**2))
-    '''
-            
 
             
     def probability_for_Ellipse(self,theta):
 
             a = theta[3]
             b = theta[4]
-            Ellipse_vector = _Init_Ellipse(theta)
-            
-            sigma = np.array([[0.002,0],[0,0.002]])
+            #Ellipse_vector = _Init_Ellipse(theta)
+            Ellipse_vector = _Distances_from_center_of_ellipse(theta,self.Z)
+            sigma = 0.05
             sigma_prior = np.array(rospy.get_param('/object_list/o'+str(self.class_number) + '/cov'))
-            L = GMM_Likelihood(Ellipse_vector,sigma,self.Z)
+            L = GMM_Prior(1,sigma,Ellipse_vector)
             a_mean = rospy.get_param('/object_list/o'+str(self.class_number) + '/a')
             b_mean = rospy.get_param('/object_list/o'+str(self.class_number) + '/b')
             
@@ -186,8 +193,7 @@ class Likelihood():
 
             return -Prior * L * self.Probability[self.class_number-1]
 
-            #distances, idc = nbrs_obj.kneighbors(Ellipse_vector.T)
-            #return -np.sum(np.exp(-10*distances**2) * np.exp(-0.4*(a - a_mean)**2) * np.exp(-0.4*(b - b_mean)**2))
+            
 
 
 

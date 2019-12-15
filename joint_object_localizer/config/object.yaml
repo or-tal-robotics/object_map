@@ -105,10 +105,10 @@ o18: #sofa
  - [0,0.2]
 o20: #tvmonitor
  r: 0
- a: 0.5
+ a: 0.9
  b: 0.04
  name: 'tvmonitor'
- bound_a: [0.2,0.7]
+ bound_a: [0.4,1.3]
  bound_b: [0.03,0.06]
  cov:
  - [0.1,0]

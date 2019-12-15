@@ -34,7 +34,7 @@ objects_center = np.array([0,0])
 while not rospy.is_shutdown():
     
     # Subscribers:
-    Theta_list_sub = rospy.Subscriber('/Theta_List',OG_List,OG_callback)
+    Theta_list_sub = rospy.Subscriber('/Theta_List',OG_List,OG_callback,queue_size=7)
     rospy.wait_for_message('/Theta_List',OG_List)
 
     data = Theta_list
@@ -84,9 +84,9 @@ while not rospy.is_shutdown():
         env = Search_Radius(3*object_class_list[index].r,object_class_list[index].a,object_class_list[index].b)
         
         if index in A_Elliptical:
-            env = env * 2.2
+            env = env * 4
         elif index in A_Rectangle:
-            env = env * 1.2
+            env = env * 1.5
 
         if dist > env:
             print ('Adding a new object.')

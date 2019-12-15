@@ -97,11 +97,12 @@ rospy.init_node('List_of_mapped_objects', anonymous=True)
 slp = rospy.Rate(1)
 global M_list_class
 M_list_class = []
+# Publishers:
+OM_publisher = rospy.Publisher('/M',M,queue_size=5)
 while not rospy.is_shutdown():
     
     slp.sleep()
-    # Publishers:
-    OM_publisher = rospy.Publisher('/M',M,queue_size=5)
+    
     # Subscribers:
 
 
