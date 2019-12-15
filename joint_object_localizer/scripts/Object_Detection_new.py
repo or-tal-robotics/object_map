@@ -38,7 +38,7 @@ def Odom_callback(data):
 rospy.init_node('Theta_values', anonymous=True)
 # Publisher:
 
-M_list_publisher = rospy.Publisher('/M_o',M_Suggested_List,queue_size = 10)
+M_list_publisher = rospy.Publisher('/M_o',M_Suggested_List,queue_size = 1)
 # Subscribers:
 scan_point_sub = rospy.Subscriber('/scan' ,LaserScan , callback_laser )
 rospy.wait_for_message('/scan',LaserScan)
@@ -56,7 +56,7 @@ A_Elliptical = np.array(rospy.get_param('/Array/elliptical'))
 Object_cls_list = np.array(rospy.get_param('/Array/object_list'))
 correction_factor = rospy.get_param('/Cord_cor/Simulation/Correction')
 
-r = rospy.Rate(5)
+r = rospy.Rate(1)
 
 while not rospy.is_shutdown():
     r.sleep()
@@ -239,7 +239,7 @@ while not rospy.is_shutdown():
                     # Bounds for DE algoritm
                     bounds_R = [ [np.amin(box[:,0])-0.1 , np.amin([np.amax(box[:,0])+0.1 , 3])],
                                  [np.amin(box[:,1])-0.1 , np.amin([np.amax(box[:,1])+0.1 , 3])],
-                                 [-np.pi,np.pi],
+                                 [-np.pi,-0.05],
                                   bound_a,
                                   bound_b]
 
@@ -247,7 +247,7 @@ while not rospy.is_shutdown():
                     R_class = Likelihood(class_number=jj , Z=box, SSD_probability=SSD_probabilities)
                     # DE angoritm:
                     rectangle_minimized_values = differential_evolution(R_class.probability_for_Rectangle,bounds_R,
-                                                                        maxiter = 50,  popsize=5, tol=0.00001)
+                                                                        maxiter = 50,  popsize=10, tol=0.00001)
                     
                     # Inserting the founded data:
                     Theta_Object.x_center , Theta_Object.y_center = New_Ce_array(rectangle_minimized_values.x[0],
@@ -279,14 +279,14 @@ while not rospy.is_shutdown():
                     # Bounds for DE algoritm
                     bounds_E = [ [np.amin(ellipse[:,0])-0.1 , np.amin([np.amax(ellipse[:,0])+0.1 , 2])],
                                  [np.amin(ellipse[:,1])-0.1 , np.amin([np.amax(ellipse[:,1])+0.1 , 2])],
-                                 [0,np.pi],
+                                 [-np.pi,-0.05],
                                   bound_a,
                                   bound_b]
 
                     E_class = Likelihood(class_number=jj , Z=ellipse , SSD_probability=SSD_probabilities)
                     # DE angoritm:
                     elliptical_minimized_values = differential_evolution(E_class.probability_for_Ellipse,bounds_E,
-                                                                            maxiter = 50,  popsize=5, tol=0.00001)
+                                                                            maxiter = 50,  popsize=10, tol=0.00001)
 
                     # Inserting the founded data:
                     Theta_Object.probabilities = data.outputs[ii].probability_distribution

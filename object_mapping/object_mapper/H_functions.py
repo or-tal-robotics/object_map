@@ -16,7 +16,7 @@ A_Round = rospy.get_param('/Array/round')
 def q_i(mi,mo):
     global A_Round
     q_i = 0
-    for ii in range(0,11):
+    for ii in range(0,12):
         if mi.cls_num[ii] in A_Round:
             theta_i = np.array([mi.x_center[ii],mi.y_center[ii],mi.r[ii]])
             theta_o = np.array([mo.x_center[ii],mo.y_center[ii],mo.r[ii]])
@@ -33,7 +33,7 @@ def q_i(mi,mo):
 def _Making_M_i(mi):
     
     M_i_list = M_i()
-    for i in range(0,11):
+    for i in range(0,12):
         SO = Single_Class()
         SO.x_center =  mi.x_center[i]
         SO.y_center =  mi.y_center[i]

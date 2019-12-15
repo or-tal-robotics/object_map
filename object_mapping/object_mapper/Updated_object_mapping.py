@@ -13,7 +13,7 @@ from object_mapping.msg import Single_Class , M_i , M
 
 def M_o_callback(data):
 
-    epsilon = 0.02
+    global epsilon
     global M_list_class
     # The subs:
     global Theta_list
@@ -96,6 +96,8 @@ rospy.init_node('List_of_mapped_objects', anonymous=True)
 
 slp = rospy.Rate(1)
 global M_list_class
+global epsilon
+epsilon = rospy.get_param('/Cov/epsilon')
 M_list_class = []
 # Publishers:
 OM_publisher = rospy.Publisher('/M',M,queue_size=5)

@@ -6,17 +6,24 @@ import xlsxwriter
 
 from object_mapping.msg import M
 
+global number_of_test
+
+
 def callback_map(data):
     global O_map
     O_map = data
-    workbook = xlsxwriter.Workbook('dog11.xlsx')
+    global number_of_test
+
+    
+    
+    workbook = xlsxwriter.Workbook('TV10.xlsx')
     worksheet = workbook.add_worksheet()
     row = 0
     column = 0
 
     for ii in range(0,len(O_map.M)):
         
-        names = ['obj','dog']
+        names = ['obj','TV']
         for name in names:
 
             worksheet.write(row, column, name)
@@ -29,7 +36,7 @@ def callback_map(data):
         probabilities = []
 
         for jj in range(0,len(O_map.M[ii].m_i)):
-            if O_map.M[ii].m_i[jj].cls_num == 12:
+            if O_map.M[ii].m_i[jj].cls_num == 20:
                 x.append(O_map.M[ii].m_i[jj].x_center)
                 y.append(O_map.M[ii].m_i[jj].y_center)
                 probabilities.append(O_map.M[ii].m_i[jj].probability)
@@ -58,10 +65,10 @@ def callback_map(data):
             column += 1
         row += 2
         column = 0
-
+    
     workbook.close()
 
-rospy.init_node('xls_dog_node', anonymous=True)
+rospy.init_node('xls_TV_node', anonymous=True)
 
 
 #Subsctibers:

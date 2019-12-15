@@ -2,7 +2,6 @@
 <launch>
 
 
-
 	<!--<include file="$(find gazebo_demo)/launch/gazebo_demo_world.launch" /> -->
 
 	<include file="$(find gazebo_demo)/launch/put_robot_in_world.launch" />
