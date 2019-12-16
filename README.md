@@ -1,2 +1,2 @@
 # object_map
-Object meta-package 
+A semantic SLAM algorithm 
