@@ -28,10 +28,10 @@ o5: #bottle
  cov: 0.015
 o8: #cat
  r: 0
- a: 0.2
+ a: 0.15
  b: 0.08
  name: 'cat'
- bound_a: [0.1,0.25]
+ bound_a: [0.08,0.25]
  bound_b: [0.06,0.11]
  cov:
  - [0.04,0]
@@ -48,11 +48,11 @@ o9: # Chair
  - [0,0.125]
 o12: #dog
  r: 0
- a: 0.4
- b: 0.09
+ a: 0.45
+ b: 0.07
  name: 'dog'
  bound_a: [0.15,0.6]
- bound_b: [0.07,0.12]
+ bound_b: [0.05,0.12]
  cov:
  - [0.05,0]
  - [0,0.03]
@@ -68,7 +68,7 @@ o14: #motorbike
  - [0,0.01]
 o15: #person
  r: 0
- a: 0.2
+ a: 0.21
  b: 0.09
  name: 'person'
  bound_a: [0.15,0.25]

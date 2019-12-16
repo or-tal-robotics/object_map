@@ -296,7 +296,7 @@
           <lighting>1</lighting>
           <script>
             <uri>file://media/materials/scripts/gazebo.material</uri>
-            <name>Gazebo/Gold </name>
+            <name>Gazebo/DarkGrey </name>
           </script>
           <shader type='vertex'>
             <normal_map>__default__</normal_map>

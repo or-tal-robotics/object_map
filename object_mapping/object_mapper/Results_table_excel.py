@@ -9,15 +9,15 @@ from object_mapping.msg import M
 def callback_map(data):
     global O_map
     O_map = data
-    workbook = xlsxwriter.Workbook('Results3_second_round.xlsx')
-    #workbook = xlsxwriter.Workbook('Results3.xlsx')
+    workbook = xlsxwriter.Workbook('Results4_second_round.xlsx')
+    #workbook = xlsxwriter.Workbook('Results4.xlsx')
     worksheet = workbook.add_worksheet()
     row = 0
     column = 0
 
     for ii in range(0,len(O_map.M)):
         
-        names = [str(ii),'bicycle','bird','bottle','cat','dog','motorbike','person','pottedplant','sheep','sofa','tvmonitor']
+        names = [str(ii),'bicycle','bird','bottle','cat','Chair','dog','motorbike','person','pottedplant','sheep','sofa','tvmonitor']
         for name in names:
 
             worksheet.write(row, column, name)
