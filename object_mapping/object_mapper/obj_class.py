@@ -1,29 +1,41 @@
 #!/usr/bin/env python
 
 # Libraries:
+import rospy
 import numpy as np
 import pandas as pd
-import rospkg 
-
-global CM
-
-rospack = rospkg.RosPack()
-# get the file path for rospy_tutorials
-pa = rospack.get_path('object_mapping')
-
-# Confusion matrix
-CM = pd.read_csv(pa+"/object_mapper/confusion_matrix_corrected.csv")
-CM = (np.array(CM)[:,1:]).T
 
 
+# updating location and sizes:
+def Theta_updater(x_old,x_new,
+                y_old,y_new,
+                r_old,r_new,
+                a_old,a_new,
+                b_old,b_new,
+                phi_old,phi_new):
+
+                x = (x_old + x_new)/2
+                y = (y_old + y_new)/2
+                r = (r_old + r_new)/2
+                a = (a_old + a_new)/2
+                b = (b_old + b_new)/2
+                phi = (phi_old + phi_new)/2
+
+                return x , y , r , a , b , phi
+    
 
 # Updating the Probabilities of every object with consideration for the old ones:
 def Updated_Probabilities_and_Cls(old_probability,new_probability,new_cls):
-    global CM
-    updated_prob = np.multiply(CM[new_cls-1,:],new_probability)
-    sumU = np.sum(updated_prob)
-    updated_prob = updated_prob / sumU
-    new_cls = np.argmax(updated_prob)+1
+    #global CM
+    #updated_prob = np.multiply(CM[new_cls-1,:],new_probability)
+    if len(np.array(old_probability)) < 1:
+        new_cls = np.argmax(new_probability)+1
+        updated_prob = new_probability
+    else:
+        updated_prob = 0.5 * (np.array(old_probability) + np.array(new_probability))
+        sumU = np.sum(updated_prob)
+        updated_prob = updated_prob / sumU
+        new_cls = np.argmax(updated_prob)+1
     return updated_prob, new_cls
 
 # Calculating the distance between two points:

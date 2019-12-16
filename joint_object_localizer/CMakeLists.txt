@@ -51,6 +51,8 @@ add_message_files(
   FILES
   Object_Geometry.msg
   OG_List.msg
+  M_Suggested_List.msg
+  Optional_Theta.msg
 )
 
 ## Generate services in the 'srv' folder

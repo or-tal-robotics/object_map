@@ -7,6 +7,9 @@ float64 a
 float64 b
 float64 angle
 
+float64 height_factor
+
 float64[] probabilities
 int16 cls_num
+
 

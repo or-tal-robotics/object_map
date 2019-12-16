@@ -7,6 +7,10 @@ float64 a
 float64 b
 float64 angle
 
+float64 height_factor
+
 int16 cls
 float64[] probabilities
+
+float64 Final_Likelihood
 
