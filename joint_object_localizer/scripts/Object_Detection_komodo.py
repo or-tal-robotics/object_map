@@ -208,7 +208,7 @@ while not rospy.is_shutdown():
                                 SSD_probability=data.outputs[ii].probability_distribution)
             # DE algoritm
             circle_minimized_values = differential_evolution(C_class.probability_for_circle,bounds ,
-                                                            maxiter = 50,  popsize=15, tol=0.00001)
+                                                            maxiter = 50,  popsize=5, tol=0.00001)
 
             if circle_minimized_values.x[0]**2 + circle_minimized_values.x[1]**2 > 5:
                 continue
@@ -247,7 +247,7 @@ while not rospy.is_shutdown():
             R_class = Likelihood(class_number=cls_num , Z=box , SSD_probability=data.outputs[ii].probability_distribution)
             # DE angoritm:
             rectangle_minimized_values = differential_evolution(R_class.probability_for_Rectangle,bounds_R \
-                , maxiter = 50,  popsize=15, tol=0.00001)
+                , maxiter = 50,  popsize=5, tol=0.00001)
             # Entering the found data:
 
 
@@ -281,7 +281,7 @@ while not rospy.is_shutdown():
             E_class = Likelihood(class_number=cls_num , Z=ellipse , SSD_probability=data.outputs[ii].probability_distribution)
             # DE angoritm:
             elliptical_minimized_values = differential_evolution(E_class.probability_for_Ellipse,bounds_E \
-                , maxiter = 50,  popsize=15, tol=0.00001)
+                , maxiter = 50,  popsize=5, tol=0.00001)
 
                   
             if elliptical_minimized_values.x[0]**2 + elliptical_minimized_values.x[1]**2 > 4:
