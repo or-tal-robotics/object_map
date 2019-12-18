@@ -10,11 +10,15 @@ import pandas as pd
 from joint_object_localizer.msg import M_Suggested_List
 from object_mapping.msg import Single_Class , M_i , M
 
+global last_location_x , last_location_y
+last_location_x = 0
+last_location_y = 0
 
 def M_o_callback(data):
 
     global epsilon
     global M_list_class
+    global last_location_x , last_location_y
     # The subs:
     global Theta_list
     Theta_list = data
@@ -31,6 +35,7 @@ def M_o_callback(data):
     
     # Updating the msg:
     
+
     
         
     for jj in range(0,len(data.M_list)):
@@ -47,7 +52,12 @@ def M_o_callback(data):
             angle.append(data.M_list[jj].object_list[i].angle)
             cls_num.append(data.M_list[jj].object_list[i].cls)
             Prb.append(data.M_list[jj].object_list[i].Final_Likelihood)
-            
+
+        if x[0] == last_location_x  and y[0] == last_location_y:
+            return 0
+
+        last_location_x = x[0]
+        last_location_y = y[0]
 
         # The new object:
         Mo = SO_class(x_center=x,y_center=y,r=r,a=a,b=b,angle=angle,cls_num=cls_num,prob_distribution=Prb)
@@ -108,7 +118,7 @@ while not rospy.is_shutdown():
     # Subscribers:
 
 
-    Theta_list_sub = rospy.Subscriber('/M_o',M_Suggested_List,M_o_callback)
+    Theta_list_sub = rospy.Subscriber('/M_o',M_Suggested_List,M_o_callback,queue_size=1)
     rospy.wait_for_message('/M_o',M_Suggested_List)
 
  

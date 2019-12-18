@@ -27,10 +27,10 @@ def Robot_callback(data):
     Robot_Pose = data
 
 def SSD_callback(data):
-        
-    global SSD_info
+    
+    global SSD_info , got_new_ssd_msg
     SSD_info = data
-
+    got_new_ssd_msg = True
 def Odom_callback(data):
     global Robot_Odometry
     Robot_Odometry = data.pose.pose
@@ -56,10 +56,11 @@ A_Elliptical = np.array(rospy.get_param('/Array/elliptical'))
 Object_cls_list = np.array(rospy.get_param('/Array/object_list'))
 correction_factor = rospy.get_param('/Cord_cor/Simulation/Correction')
 
-r = rospy.Rate(1)
+global got_new_ssd_msg
+#r = rospy.Rate(1)
 
 while not rospy.is_shutdown():
-    r.sleep()
+    #Sr.sleep()
 
     data = SSD_info
     
@@ -69,8 +70,9 @@ while not rospy.is_shutdown():
         M_S.M_list = []
         M_list_publisher.publish(M_S)
 
-    else:
+    elif got_new_ssd_msg == True:
         
+        got_new_ssd_msg = False
         M_S = M_Suggested_List()
         M_S.M_list = []
         
@@ -201,7 +203,7 @@ while not rospy.is_shutdown():
                     C_class = Likelihood(class_number=jj,Z=circle,SSD_probability=SSD_probabilities)
                     # DE algoritm
                     circle_minimized_values = differential_evolution(C_class.probability_for_circle,bounds,
-                                                                    maxiter = 100,  popsize=15, tol=0.00001)
+                                                                    maxiter = 50,  popsize=5, tol=0.00001)
                     
                     # Inserting the founded data:
                     v0 = New_Ce_array(circle_minimized_values.x[0],
@@ -247,7 +249,7 @@ while not rospy.is_shutdown():
                     R_class = Likelihood(class_number=jj , Z=box, SSD_probability=SSD_probabilities)
                     # DE angoritm:
                     rectangle_minimized_values = differential_evolution(R_class.probability_for_Rectangle,bounds_R,
-                                                                        maxiter = 50,  popsize=10, tol=0.00001)
+                                                                        maxiter = 50,  popsize=5, tol=0.00001)
                     
                     # Inserting the founded data:
                     Theta_Object.x_center , Theta_Object.y_center = New_Ce_array(rectangle_minimized_values.x[0],
@@ -286,7 +288,7 @@ while not rospy.is_shutdown():
                     E_class = Likelihood(class_number=jj , Z=ellipse , SSD_probability=SSD_probabilities)
                     # DE angoritm:
                     elliptical_minimized_values = differential_evolution(E_class.probability_for_Ellipse,bounds_E,
-                                                                            maxiter = 50,  popsize=10, tol=0.00001)
+                                                                            maxiter = 50,  popsize=5, tol=0.00001)
 
                     # Inserting the founded data:
                     Theta_Object.probabilities = data.outputs[ii].probability_distribution
