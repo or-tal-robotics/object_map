@@ -51,6 +51,9 @@ add_message_files(
   FILES
   Object.msg
   Object_Map.msg
+  Single_Class.msg
+  M_i.msg
+  M.msg
 )
 
 ## Generate services in the 'srv' folder

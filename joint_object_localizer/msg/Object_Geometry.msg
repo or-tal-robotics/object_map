@@ -12,3 +12,5 @@ float64 height_factor
 int16 cls
 float64[] probabilities
 
+float64 Final_Likelihood
+

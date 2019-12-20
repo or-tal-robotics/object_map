@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<launch>
+    <node pkg="joint_object_localizer" type="Object_Detection_new.py" name="object_detection_node" output="screen"/>
+
+    <node pkg="object_detector_ssd_tf_ros" type="ssd_node.py" name="object_detector_ssd_node" output="screen"/>
+
+    <node pkg="object_mapping" type="Updated_object_mapping.py" name="object_mapper_node" output="screen"/>
+
+    <node pkg="object_mapping" type="map2rviz.py" name="Publish_object_to_rviz_node" output="screen"/>
+
+</launch>

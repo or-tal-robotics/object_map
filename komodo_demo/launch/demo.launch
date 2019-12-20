@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<launch>
+
+
+
+
+<include file="$(find komodo_demo)/launch/hector_slam.launch" />
+
+<include file="$(find komodo_demo)/launch/object_map.launch" />
+
+<include file="$(find komodo_demo)/launch/joystick.launch" />
+
+<include file="$(find gazebo_demo)/launch/object_yaml.launch" />
+
+
+
+</launch>
