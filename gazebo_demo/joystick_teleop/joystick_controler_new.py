@@ -30,7 +30,7 @@ def main ():
       #right.data = (Move[2]+Move[3])*3
       #left.data = (Move[0] - Move[3] + Move[1]) * 3
       #right.data = (Move[0] + Move[2] + Move[1]) * 3
-      vel.linear.x = (Move[0] + Move[1]) * 0.3
+      vel.linear.x = (Move[0] + Move[1]) * 0.5
       vel.angular.z = (Move[2] + Move[3])*0.3
       pub.publish(vel)
       

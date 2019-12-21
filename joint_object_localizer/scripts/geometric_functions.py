@@ -183,7 +183,7 @@ class Likelihood():
             b = theta[4]
             #Ellipse_vector = _Init_Ellipse(theta)
             Ellipse_vector = _Distances_from_center_of_ellipse(theta,self.Z)
-            sigma = 0.05
+            sigma = 0.09
             sigma_prior = np.array(rospy.get_param('/object_list/o'+str(self.class_number) + '/cov'))
             L = GMM_Prior(1,sigma,Ellipse_vector)
             a_mean = rospy.get_param('/object_list/o'+str(self.class_number) + '/a')

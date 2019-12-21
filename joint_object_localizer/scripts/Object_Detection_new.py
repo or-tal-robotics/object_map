@@ -204,7 +204,7 @@ while not rospy.is_shutdown():
                     C_class = Likelihood(class_number=jj,Z=circle,SSD_probability=SSD_probabilities)
                     # DE algoritm
                     circle_minimized_values = differential_evolution(C_class.probability_for_circle,bounds,
-                                                                    maxiter = 50,  popsize=5, tol=0.00001)
+                                                                    maxiter = 100,  popsize=15, tol=0.00001)
                     
                     # Inserting the founded data:
                     v0 = New_Ce_array(circle_minimized_values.x[0],
@@ -250,7 +250,7 @@ while not rospy.is_shutdown():
                     R_class = Likelihood(class_number=jj , Z=box, SSD_probability=SSD_probabilities)
                     # DE angoritm:
                     rectangle_minimized_values = differential_evolution(R_class.probability_for_Rectangle,bounds_R,
-                                                                        maxiter = 50,  popsize=5, tol=0.00001)
+                                                                        maxiter = 50,  popsize=9, tol=0.00001)
                     
                     # Inserting the founded data:
                     Theta_Object.x_center , Theta_Object.y_center = New_Ce_array(rectangle_minimized_values.x[0],
@@ -294,7 +294,7 @@ while not rospy.is_shutdown():
                     E_class = Likelihood(class_number=jj , Z=ellipse , SSD_probability=SSD_probabilities)
                     # DE angoritm:
                     elliptical_minimized_values = differential_evolution(E_class.probability_for_Ellipse,bounds_E,
-                                                                            maxiter = 50,  popsize=5, tol=0.00001)
+                                                                            maxiter = 50,  popsize=9, tol=0.00001)
 
                     # Inserting the founded data:
                     Theta_Object.probabilities = data.outputs[ii].probability_distribution
