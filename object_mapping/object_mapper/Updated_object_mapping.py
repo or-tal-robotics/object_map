@@ -23,7 +23,6 @@ def M_o_callback(data):
     global Theta_list
     Theta_list = data
     
-    
     x = []
     y = []
     r = []
@@ -33,11 +32,7 @@ def M_o_callback(data):
     cls_num = []
     Prb = []
     
-    # Updating the msg:
-    
-
-    
-        
+    # Updating the msg:   
     for jj in range(0,len(data.M_list)):
         
         # Arranging the data for Mo:
@@ -53,6 +48,7 @@ def M_o_callback(data):
             cls_num.append(data.M_list[jj].object_list[i].cls)
             Prb.append(data.M_list[jj].object_list[i].Final_Likelihood)
 
+        # In case the same object has been sent more than once:
         if x[0] == last_location_x  and y[0] == last_location_y:
             return 0
 
@@ -60,65 +56,66 @@ def M_o_callback(data):
         last_location_y = y[0]
 
         # The new object:
-        Mo = SO_class(x_center=x,y_center=y,r=r,a=a,b=b,angle=angle,cls_num=cls_num,prob_distribution=Prb)
+        Mo = SO_class(x_center=x,y_center=y,r=r,a=a,b=b,angle=angle,
+                        cls_num=cls_num,prob_distribution=Prb)
+        
         print 'Got new Mo'
         if len(M_list_class) == 0:
-            print "First try"
+            print "First Object"
             M_list_class.append(Mo)
             
             
         else:
-            print "Not first try"
             q = []
             for ii in range(0,len(M_list_class)):
                 q.append(q_i(M_list_class[ii],Mo))
                 
             ii = np.argmax(q)
 
+            # New object
             if q[ii] < epsilon:
+                print 'Added an object'
                 M_list_class.append(Mo)
                 
-
+            # Updating an object:
             else:
-            
+                print 'Updating an object'
                 alpha = 0.5
 
                 # Updating:
-                M_list_class[ii].prob_distribution = Prob_updater(alpha,M_list_class[ii].prob_distribution,Mo.prob_distribution)
+                M_list_class[ii].prob_distribution = Prob_updater(alpha,
+                                                                  M_list_class[ii].prob_distribution,
+                                                                  Mo.prob_distribution)
 
-                M_list_class[ii].x_center = alpha * M_list_class[ii].x_center + (1-alpha)*Mo.x_center
-                M_list_class[ii].y_center = alpha * M_list_class[ii].y_center + (1-alpha)*Mo.y_center 
+                M_list_class[ii].x_center = alpha * M_list_class[ii].x_center\
+                                                    + (1-alpha)*Mo.x_center
+                M_list_class[ii].y_center = alpha * M_list_class[ii].y_center\
+                                                    + (1-alpha)*Mo.y_center 
                 M_list_class[ii].r = alpha * M_list_class[ii].r + (1-alpha)*Mo.r
                 M_list_class[ii].a = alpha * M_list_class[ii].a + (1-alpha)*Mo.a
                 M_list_class[ii].b = alpha * M_list_class[ii].b + (1-alpha)*Mo.b
                 M_list_class[ii].angle = alpha * M_list_class[ii].angle + (1-alpha)*Mo.angle
 
-    if len(data.M_list)>0:
-        print "Updating"
     M_msg = making_M(M_list_class)
     OM_publisher.publish(M_msg)
     if len(data.M_list)>0:
-        print "Updated"
+        print "Done"
 
 
 # Initial node:
 rospy.init_node('List_of_mapped_objects', anonymous=True)
 
-slp = rospy.Rate(1)
+
 global M_list_class
 global epsilon
 epsilon = rospy.get_param('/Cov/epsilon')
 M_list_class = []
 # Publishers:
 OM_publisher = rospy.Publisher('/M',M,queue_size=5)
+
 while not rospy.is_shutdown():
-    
-    slp.sleep()
-    
-    # Subscribers:
 
-
-    Theta_list_sub = rospy.Subscriber('/M_o',M_Suggested_List,M_o_callback,queue_size=1)
+    Theta_list_sub = rospy.Subscriber('/M_o',M_Suggested_List,M_o_callback,queue_size=20)
     rospy.wait_for_message('/M_o',M_Suggested_List)
 
  

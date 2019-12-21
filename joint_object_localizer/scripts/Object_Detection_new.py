@@ -3,6 +3,7 @@
 # Libraries:
 import rospy
 import numpy as np
+import time
 from scipy.optimize import differential_evolution
 from tf.transformations import quaternion_from_euler
 from geometric_functions import Likelihood, quaternion_to_euler, New_Ce_array
@@ -38,7 +39,7 @@ def Odom_callback(data):
 rospy.init_node('Theta_values', anonymous=True)
 # Publisher:
 
-M_list_publisher = rospy.Publisher('/M_o',M_Suggested_List,queue_size = 1)
+M_list_publisher = rospy.Publisher('/M_o',M_Suggested_List,queue_size = 10)
 # Subscribers:
 scan_point_sub = rospy.Subscriber('/scan' ,LaserScan , callback_laser )
 rospy.wait_for_message('/scan',LaserScan)
@@ -177,7 +178,7 @@ while not rospy.is_shutdown():
                     continue
                 las_points[i,0] = R[i] * np.cos((i-size) * angle_jumps)
                 las_points[i,1] = R[i] * np.sin((i-size) * angle_jumps)
-            
+            start_time = time.time()
             counter = 0
             # ------------------------Main algoritm start------------------------------------
             for jj in Object_cls_list:
@@ -274,7 +275,12 @@ while not rospy.is_shutdown():
                     Theta_Object = Object_Geometry()
                     Theta_Object.height_factor = data.outputs[ii].height_factor
                     # Initializing the box array:
-                    ellipse = np.array((las_points[angle_min:angle_max,:]))
+                    # If it is a person or dog. the ssd capture much more measurements than it is need to, so:
+                    if jj == 15 or jj == 12: 
+                        ellipse = np.array((las_points[angle_min+7:angle_max-7,:]))
+                    else:
+                        ellipse = np.array((las_points[angle_min:angle_max,:]))
+                    #ellipse = np.array((las_points[angle_min:angle_max,:]))
 
                     bound_a = rospy.get_param('/object_list/o'+str(jj)+'/bound_a')
                     bound_b = rospy.get_param('/object_list/o'+str(jj)+'/bound_b')
@@ -304,7 +310,8 @@ while not rospy.is_shutdown():
                     # Making a sum to normalize the probabilities:
                     Norm_factor += elliptical_minimized_values.fun
                     print ('Found ' + str(counter))
-            
+            finish_time = time.time()
+            print 'The time it took was ' + str(np.round(finish_time-start_time,3))+ ' [sec]'
             # Normalize the probabilities:
             for kk in range(0,counter):
                 Theta_list.object_list[kk].Final_Likelihood = Theta_list.object_list[kk].Final_Likelihood / Norm_factor
