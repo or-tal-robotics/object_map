@@ -9,7 +9,7 @@
     </group>
 
     <group ns="Cov">
-        <rosparam file="$(find joint_object_localizer)/config/theta_cov.yaml" />
+        <rosparam file="$(find object_mapping)/config/theta_cov.yaml" />
     </group>
     
     <group ns="Cord_cor">

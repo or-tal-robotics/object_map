@@ -5,7 +5,7 @@ import rospy
 import numpy as np
 from scipy.optimize import differential_evolution
 from tf.transformations import quaternion_from_euler
-from geometric_functions import Likelihood, quaternion_to_euler, New_Ce_array
+from geometric_functions import Likelihood, quaternion_to_euler, New_Ce_array , Ranges_to_xy_plane , Object_height_update
 
 # Msgs:
 from object_detector_ssd_tf_ros.msg import SSD_Outputs
@@ -86,15 +86,16 @@ while not rospy.is_shutdown():
         x_max_new = data.outputs[ii].x_max
         y_min_new = data.outputs[ii].y_min
         y_max_new = data.outputs[ii].y_max
+
         cls_num = data.outputs[ii].cls
         Theta_Object.height_factor = data.outputs[ii].height_factor
+        if Theta_Object.height_factor == 0:
+            Theta_Object.height_factor = 0.4
 
         # In case the object is too high or too low.
         if y_min_new > 200 or y_max_new < 120:
-            print ('Not in a good height')
             continue
 
- 
         # In case the object is not a one that can be stationed in the map:
         if cls_num not in Object_cls_list:
             continue
@@ -123,76 +124,24 @@ while not rospy.is_shutdown():
         y_R = Robot_Pose.pose.position.y
         
         # Empty array to add the xy points:
-        las_points = np.zeros((2*size + 1,2))
+        laser_depth_observations = np.zeros((2*size + 1,2))
 
         # Getting the distances from the sensor:
         R = np.array(scan_point.ranges)
 
-        # Initializing an inf values:
-        R[np.isinf(R)] = 0
+        laser_depth_observations = Ranges_to_xy_plane(R,angle_min,angle_max,
+                                        size,angle_jumps,max_dist=1)
 
-        # Initializing an inf values:
-        R[np.isnan(R)] = 0
-
-        # Checking info about the location of the object:
-        Dist_check = np.array(R[angle_min:angle_max])
-        Dist_check = Dist_check[Dist_check != 0]
-
-        # If there are not enough measuremrnts:
-        if len(Dist_check) < 4:
-            continue
-        # If object is too far away:
-        if np.amin(Dist_check) > 1:
+        # Not enough measurements or object is too far away:
+        if len(laser_depth_observations) == 2:
             continue
         
-        print ('Close enough, starting.')
-
-        P = PointCloud()
-        P.points = []
-        P.header.frame_id = 'laser_link'
-        for i in range (0,size):
-            
-            if R[i] == 0:
-                las_points[i,0] = 100000
-                las_points[i,1] = 100000
-                continue
-            las_points[i,0] = -R[i] * np.cos((size - i) * angle_jumps - np.pi)
-            las_points[i,1] = R[i] * np.sin((size - i) * angle_jumps - np.pi)
-            
-            if cls_num != 0  and x_min_new != -1 and i < angle_max and i >= angle_min:
-                xyz = Point32()
-                xyz.x = las_points[i,0]
-                xyz.y = las_points[i,1]
-                xyz.z = 0
-                P.points.append(xyz)
-
-        
-        for i in range (size,2*size+1):
-            if R[i] == 0:
-                las_points[i,0] = 100000
-                las_points[i,1] = 100000
-                continue
-            las_points[i,0] = R[i] * np.cos((i-size) * angle_jumps)
-            las_points[i,1] = R[i] * np.sin((i-size) * angle_jumps)
-
-            if cls_num != 0  and x_min_new != -1 and i < angle_max and i >= angle_min:
-                xyz = Point32()
-                xyz.x = las_points[i,0]
-                xyz.y = las_points[i,1]
-                xyz.z = 0
-                
-                P.points.append(xyz)
-        Object_P_pub.publish(P)
-        if cls_num not in Object_cls_list:
-            continue
         
         # Round objects:
         if cls_num in A_Round:
             
-        
-            
             # Initializing the circle array:
-            circle = np.array((las_points[angle_min:angle_max,:]))
+            circle = np.array((laser_depth_observations[angle_min:angle_max,:]))
 
             if np.amin(circle[:,0]**2 + circle[:,1]**2)>4:
                 continue
@@ -210,6 +159,10 @@ while not rospy.is_shutdown():
             circle_minimized_values = differential_evolution(C_class.probability_for_circle,bounds ,
                                                             maxiter = 50,  popsize=5, tol=0.00001)
 
+            object_height = Object_height_update(Theta_Object.height_factor,
+                                                2*circle_minimized_values.x[2],
+                                                0,
+                                                0)
             if circle_minimized_values.x[0]**2 + circle_minimized_values.x[1]**2 > 5:
                 continue
             # Entering the found data:
@@ -221,6 +174,7 @@ while not rospy.is_shutdown():
             Theta_Object.a = 0
             Theta_Object.b = 0
             Theta_Object.angle = 0
+            Theta_Object.object_height = object_height
 
             Theta_Object.cls = cls_num
             
@@ -232,7 +186,7 @@ while not rospy.is_shutdown():
 
             
             # Initializing the box array:
-            box = np.array((las_points[angle_min:angle_max,:]))
+            box = np.array((laser_depth_observations[angle_min:angle_max,:]))
 
             if np.amin(box[:,0]**2 + box[:,1]**2)>5:
                 continue
@@ -241,7 +195,7 @@ while not rospy.is_shutdown():
             bound_b = rospy.get_param('/object_list/o'+str(cls_num)+'/bound_b')
             # Bounds for DE algoritm
             bounds_R = [ [np.amin(box[:,0])-0.1 , np.amin([np.amax(box[:,0])+0.1 , 3])] , \
-                [np.amin(box[:,1])-0.1,np.amin([np.amax(box[:,1])+0.1 , 3])],[-np.pi,np.pi],bound_a,bound_b]
+                [np.amin(box[:,1])-0.1,np.amin([np.amax(box[:,1])+0.1 , 3])],[0,np.pi],bound_a,bound_b]
 
             
             R_class = Likelihood(class_number=cls_num , Z=box , SSD_probability=data.outputs[ii].probability_distribution)
@@ -250,6 +204,10 @@ while not rospy.is_shutdown():
                 , maxiter = 50,  popsize=5, tol=0.00001)
             # Entering the found data:
 
+            object_height = Object_height_update(Theta_Object.height_factor,
+                                                rectangle_minimized_values.x[3],
+                                                rectangle_minimized_values.x[4],
+                                                rectangle_minimized_values.x[2])
 
             if rectangle_minimized_values.x[0]**2 + rectangle_minimized_values.x[1]**2 > 9:
                 continue
@@ -260,6 +218,7 @@ while not rospy.is_shutdown():
             Theta_Object.angle = rectangle_minimized_values.x[2] + yaw
             Theta_Object.r = 0
             Theta_Object.cls = cls_num
+            Theta_Object.object_height = object_height
             
             
             Theta_list.object_list.append(Theta_Object)
@@ -268,9 +227,7 @@ while not rospy.is_shutdown():
         elif cls_num in A_Elliptical:
             
             # Initializing the box array:
-            ellipse = np.array((las_points[angle_min:angle_max,:]))
-
-            
+            ellipse = np.array((laser_depth_observations[angle_min:angle_max,:]))
 
             bound_a = rospy.get_param('/object_list/o'+str(cls_num)+'/bound_a')
             bound_b = rospy.get_param('/object_list/o'+str(cls_num)+'/bound_b')
@@ -283,7 +240,10 @@ while not rospy.is_shutdown():
             elliptical_minimized_values = differential_evolution(E_class.probability_for_Ellipse,bounds_E \
                 , maxiter = 50,  popsize=5, tol=0.00001)
 
-                  
+            object_height = Object_height_update(Theta_Object.height_factor,
+                                                2*elliptical_minimized_values.x[3],
+                                                2*elliptical_minimized_values.x[4],
+                                                elliptical_minimized_values.x[2])
             if elliptical_minimized_values.x[0]**2 + elliptical_minimized_values.x[1]**2 > 4:
                 continue
             # Entering the found data:
@@ -294,6 +254,7 @@ while not rospy.is_shutdown():
             Theta_Object.angle = elliptical_minimized_values.x[2] + yaw
             Theta_Object.r = 0
             Theta_Object.cls = cls_num
+            Theta_Object.object_height = object_height
             #Theta_Publisher.publish(Theta_Object)
             print ('Send to update')
             Theta_list.object_list.append(Theta_Object)

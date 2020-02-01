@@ -6,7 +6,7 @@ import numpy as np
 import time
 from scipy.optimize import differential_evolution
 from tf.transformations import quaternion_from_euler
-from geometric_functions import Likelihood, quaternion_to_euler, New_Ce_array
+from geometric_functions import Likelihood, quaternion_to_euler, New_Ce_array ,Ranges_to_xy_plane , Object_height_update
 
 # Msgs:
 from object_detector_ssd_tf_ros.msg import SSD_Outputs
@@ -118,7 +118,7 @@ while not rospy.is_shutdown():
             angle_min = int((correction_for_sensor - theta_max) / angle_jumps)
 
                 
-            '''
+            
             # Orientation of the robot from slam_out_pose:
             R_qx = Robot_Pose.pose.orientation.x
             R_qy = Robot_Pose.pose.orientation.y
@@ -139,45 +139,18 @@ while not rospy.is_shutdown():
             # Location of the robot from Odometry: 
             x_R = Robot_Odometry.position.x
             y_R = Robot_Odometry.position.y
-
+            '''
             # Euler orientation:
             [yaw, pitch, roll] = quaternion_to_euler(R_qx,R_qy,R_qz,R_qw)
-            
-            # Empty vector in xy coordinates for all the observed laser scan:
-            las_points = np.zeros((2*size + 1,2))
-
             # Reading from the laser sensor:
             R = np.array(scan_point.ranges)
-
-            # Initializing an inf values:
-            R[np.isinf(R)] = 0
-
-            # Making sure the object is close enogh:
-            Dist_check = np.array(R[angle_min:angle_max])
-            Dist_check = Dist_check[Dist_check != 0]
-            if np.amin(Dist_check) > 2:
+            # Transfer the (ranges,angle) poins into (x,y) points:
+            laser_depth_observations = Ranges_to_xy_plane(R,angle_min,angle_max,
+                                                            size,angle_jumps)
+            # Not enough measurements or object is too far away:
+            if len(laser_depth_observations) == 2:
                 continue
-            
-            # Making the ranges measurements to xy vectors:
-            for i in range (0,size):
-                # Making sure the false laser scans will not affect our measurements:
-                if R[i] == 0:
-                    las_points[i,0] = 100000
-                    las_points[i,1] = 100000
-                    continue
-                # x value of the vector:
-                las_points[i,0] = -R[i] * np.cos((size - i) * angle_jumps - np.pi)
-                # y value of the vector:
-                las_points[i,1] = R[i] * np.sin((size - i) * angle_jumps - np.pi)
-                
-            for i in range (size,2*size+1):
-                # Making sure the false laser scans will not affect our measurements:
-                if R[i] == 0:
-                    las_points[i,0] = 100000
-                    las_points[i,1] = 100000
-                    continue
-                las_points[i,0] = R[i] * np.cos((i-size) * angle_jumps)
-                las_points[i,1] = R[i] * np.sin((i-size) * angle_jumps)
+
             start_time = time.time()
             counter = 0
             # ------------------------Main algoritm start------------------------------------
@@ -191,7 +164,7 @@ while not rospy.is_shutdown():
                     Theta_Object = Object_Geometry()
                     Theta_Object.height_factor = data.outputs[ii].height_factor
                     # Initializing the circle array:
-                    circle = np.array((las_points[angle_min:angle_max,:]))
+                    circle = np.array((laser_depth_observations[angle_min:angle_max,:]))
 
                     bound_r = rospy.get_param('/object_list/o'+str(jj)+'/bound_r')
 
@@ -204,8 +177,12 @@ while not rospy.is_shutdown():
                     C_class = Likelihood(class_number=jj,Z=circle,SSD_probability=SSD_probabilities)
                     # DE algoritm
                     circle_minimized_values = differential_evolution(C_class.probability_for_circle,bounds,
-                                                                    maxiter = 100,  popsize=15, tol=0.00001)
+                                                                    maxiter = 50,  popsize=10, tol=0.00001)
                     
+                    object_height = Object_height_update(Theta_Object.height_factor,
+                                                        2*circle_minimized_values.x[2],
+                                                        0,
+                                                        0)
                     # Inserting the founded data:
                     v0 = New_Ce_array(circle_minimized_values.x[0],
                                     circle_minimized_values.x[1],
@@ -220,6 +197,7 @@ while not rospy.is_shutdown():
                     Theta_Object.angle = 0
                     Theta_Object.Final_Likelihood = circle_minimized_values.fun
                     Theta_Object.cls = jj
+                    Theta_Object.object_height = object_height
                     # Adding the founded data:
                     Theta_list.object_list.append(Theta_Object)
                     # Making a sum to normalize the probabilities:
@@ -234,8 +212,11 @@ while not rospy.is_shutdown():
 
                     Theta_Object = Object_Geometry()
                     Theta_Object.height_factor = data.outputs[ii].height_factor
+                    if Theta_Object.height_factor == 0:
+                        Theta_Object.height_factor = 0.4
+                    
                     # Initializing the box array:
-                    box = np.array((las_points[angle_min:angle_max,:]))
+                    box = np.array((laser_depth_observations[angle_min:angle_max,:]))
 
                     bound_a = rospy.get_param('/object_list/o'+str(jj)+'/bound_a')
                     bound_b = rospy.get_param('/object_list/o'+str(jj)+'/bound_b')
@@ -252,6 +233,10 @@ while not rospy.is_shutdown():
                     rectangle_minimized_values = differential_evolution(R_class.probability_for_Rectangle,bounds_R,
                                                                         maxiter = 50,  popsize=9, tol=0.00001)
                     
+                    object_height = Object_height_update(Theta_Object.height_factor,
+                                                        rectangle_minimized_values.x[3],
+                                                        rectangle_minimized_values.x[4],
+                                                        rectangle_minimized_values.x[2])
                     # Inserting the founded data:
                     Theta_Object.x_center , Theta_Object.y_center = New_Ce_array(rectangle_minimized_values.x[0],
                                                                                 rectangle_minimized_values.x[1],
@@ -262,6 +247,7 @@ while not rospy.is_shutdown():
                     Theta_Object.r = 0
                     Theta_Object.cls = jj
                     Theta_Object.Final_Likelihood = rectangle_minimized_values.fun
+                    Theta_Object.object_height = object_height
                     # Adding the founded data:
                     Theta_list.object_list.append(Theta_Object)
                     # Making a sum to normalize the probabilities:
@@ -277,10 +263,10 @@ while not rospy.is_shutdown():
                     # Initializing the box array:
                     # If it is a person or dog. the ssd capture much more measurements than it is need to, so:
                     if jj == 15 or jj == 12: 
-                        ellipse = np.array((las_points[angle_min+7:angle_max-7,:]))
+                        ellipse = np.array((laser_depth_observations[angle_min+7:angle_max-7,:]))
                     else:
-                        ellipse = np.array((las_points[angle_min:angle_max,:]))
-                    #ellipse = np.array((las_points[angle_min:angle_max,:]))
+                        ellipse = np.array((laser_depth_observations[angle_min:angle_max,:]))
+                    #ellipse = np.array((laser_depth_observations[angle_min:angle_max,:]))
 
                     bound_a = rospy.get_param('/object_list/o'+str(jj)+'/bound_a')
                     bound_b = rospy.get_param('/object_list/o'+str(jj)+'/bound_b')
@@ -296,6 +282,10 @@ while not rospy.is_shutdown():
                     elliptical_minimized_values = differential_evolution(E_class.probability_for_Ellipse,bounds_E,
                                                                             maxiter = 50,  popsize=9, tol=0.00001)
 
+                    object_height = Object_height_update(Theta_Object.height_factor,
+                                                2*elliptical_minimized_values.x[3],
+                                                2*elliptical_minimized_values.x[4],
+                                                elliptical_minimized_values.x[2])
                     # Inserting the founded data:
                     Theta_Object.probabilities = data.outputs[ii].probability_distribution
                     Theta_Object.x_center , Theta_Object.y_center = New_Ce_array(elliptical_minimized_values.x[0] ,elliptical_minimized_values.x[1],x_R,y_R,yaw,correction_factor)
@@ -304,6 +294,7 @@ while not rospy.is_shutdown():
                     Theta_Object.angle = elliptical_minimized_values.x[2] + yaw
                     Theta_Object.r = 0
                     Theta_Object.cls = jj
+                    Theta_Object.object_height = object_height
                     Theta_Object.Final_Likelihood = elliptical_minimized_values.fun
                     # Adding the founded data:
                     Theta_list.object_list.append(Theta_Object)
@@ -311,7 +302,7 @@ while not rospy.is_shutdown():
                     Norm_factor += elliptical_minimized_values.fun
                     print ('Found ' + str(counter))
             finish_time = time.time()
-            print 'The time it took was ' + str(np.round(finish_time-start_time,3))+ ' [sec]'
+            print ('The time it took was ' + str(np.round(finish_time-start_time,3))+ ' [sec]')
             # Normalize the probabilities:
             for kk in range(0,counter):
                 Theta_list.object_list[kk].Final_Likelihood = Theta_list.object_list[kk].Final_Likelihood / Norm_factor

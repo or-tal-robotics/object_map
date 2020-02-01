@@ -8,6 +8,7 @@ float64 b
 float64 angle
 
 float64 height_factor
+float64 object_height
 
 float64 probability
 int16 cls_num

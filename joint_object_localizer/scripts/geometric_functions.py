@@ -6,13 +6,82 @@ import numpy as np
 from scipy.stats import multivariate_normal as mn
 from scipy.optimize import differential_evolution
 
+# Msgs:
+from geometry_msgs.msg import Point32
+from sensor_msgs.msg import PointCloud
+
 global Object_cls_list
 # YAMLs:
 Object_cls_list = np.array(rospy.get_param('/Array/object_list'))
 
+# Publisher:
+Object_P_pub = rospy.Publisher('/OB_Points' , PointCloud , queue_size = 5 )
 
+def Ranges_to_xy_plane(R,angle_min,angle_max,
+                        size,angle_jumps,
+                        max_dist = 2):
+
+    '''Transfer the ranges into (x,y) dots. return array [n,2]'''
+    # Initializing an inf values:
+    R[np.isinf(R)] = 0
+
+    # Initializing an inf values:
+    R[np.isnan(R)] = 0
+
+    # Checking info about the location of the object:
+    Dist_check = np.array(R[angle_min:angle_max])
+    Dist_check = Dist_check[Dist_check != 0]
+
+    # If there are not enough measuremrnts:
+    if len(Dist_check) < 4:
+        return np.array([0,0])
+    # If object is too far away:
+    if np.amin(Dist_check) > max_dist:
+        return np.array([0,0])
+    
+    print ('Close enough, starting.')
+
+    laser_depth_observations = np.zeros((2*size + 1,2))
+    P = PointCloud()
+    P.points = []
+    P.header.frame_id = 'laser_link'
+    for i in range (0,size):
+        
+        if R[i] == 0:
+            laser_depth_observations[i,0] = 100000
+            laser_depth_observations[i,1] = 100000
+            continue
+        laser_depth_observations[i,0] = -R[i] * np.cos((size - i) * angle_jumps - np.pi)
+        laser_depth_observations[i,1] = R[i] * np.sin((size - i) * angle_jumps - np.pi)
+        
+        if i < angle_max and i >= angle_min:
+            xyz = Point32()
+            xyz.x = laser_depth_observations[i,0]
+            xyz.y = laser_depth_observations[i,1]
+            xyz.z = 0
+            P.points.append(xyz)
+
+    
+    for i in range (size,2*size+1):
+        if R[i] == 0:
+            laser_depth_observations[i,0] = 100000
+            laser_depth_observations[i,1] = 100000
+            continue
+        laser_depth_observations[i,0] = R[i] * np.cos((i-size) * angle_jumps)
+        laser_depth_observations[i,1] = R[i] * np.sin((i-size) * angle_jumps)
+
+        if i < angle_max and i >= angle_min:
+            xyz = Point32()
+            xyz.x = laser_depth_observations[i,0]
+            xyz.y = laser_depth_observations[i,1]
+            xyz.z = 0
+            
+            P.points.append(xyz)
+    Object_P_pub.publish(P)
+    return laser_depth_observations
 
 def _Rearrange_SSD_probability(Old_SSD_Probabilities):
+    '''Return updated SSD probabilities'''
     Old_SSD_Probabilities = np.array(Old_SSD_Probabilities)
     global Object_cls_list
     New_SSD_Probabilities = np.zeros(20)
@@ -22,10 +91,18 @@ def _Rearrange_SSD_probability(Old_SSD_Probabilities):
     
     return New_SSD_Probabilities
 
+def Object_height_update(height_factor,a,b,phi):
+    phi = -phi
+    '''Return the object height'''
+    if phi < np.pi/2:
+        object_x_width = a * np.cos(phi) + b * np.sin(phi)
+    else:
+        object_x_width = a * np.cos(np.pi - phi) + np.sin(phi-np.pi/2)
+    return object_x_width * height_factor    
     
-
 def quaternion_to_euler(x, y, z, w):
-    
+    '''Input quanterion angle.
+    Return euler angles [Yaw,Pitch,Roll]'''
     t0 = +2.0 * (w * x + y * z)
     t1 = +1.0 - 2.0 * (x * x + y * y)
     roll = np.arctan2(t0, t1)
@@ -39,6 +116,8 @@ def quaternion_to_euler(x, y, z, w):
     return [yaw, pitch, roll]
 
 def GMM_Likelihood(mu,sigma,Z):
+    '''Return sum of all the GMM density functions.
+    Use when mu size is more than 1'''
     n = mu.shape[1]
     L = np.zeros(Z.shape[0])
     for i in range(0,n):
@@ -46,14 +125,16 @@ def GMM_Likelihood(mu,sigma,Z):
     return np.sum(L/n)
 
 def GMM_Prior(mu,sigma,Z):
-    
-    
+    '''Return sum of all the GMM density functions.
+    Use when mu size is 1'''
     L = np.array(mn.pdf(Z,mean = mu,cov = sigma))
     
     return np.sum(L)
 
 # R - robot, c - old center
 def New_Ce_array(x_c,y_c,x_R,y_R,yaw,correction):
+    '''Rotation and translation from the robot view to map view.
+    Return [x,y] array'''
     x = x_R +  x_c*np.cos(yaw) - y_c*np.sin(yaw) + correction*np.cos(yaw)
     y = y_R +  y_c*np.cos(yaw) + x_c*np.sin(yaw) + correction*np.sin(yaw)
    
@@ -62,21 +143,23 @@ def New_Ce_array(x_c,y_c,x_R,y_R,yaw,correction):
 
 def _Init_Ellipse(theta):
         
-        x0 = theta[0]
-        y0 = theta[1]
-        phi = theta[2]
-        a = theta[3]
-        b = theta[4]
-        alpha = np.linspace(np.pi , 2 * np.pi, 5)
-        x1 = a * np.cos(alpha)
-        y1 = b * np.sin(alpha)
-        x = x1 * np.cos(phi) - y1*np.sin(phi) + x0
-        y = y1 * np.cos(phi) + x1*np.sin(phi) + y0
-        Ellipse_vector = np.array([x,y])
-        return Ellipse_vector
+    x0 = theta[0]
+    y0 = theta[1]
+    phi = theta[2]
+    a = theta[3]
+    b = theta[4]
+    alpha = np.linspace(np.pi , 2 * np.pi, 5)
+    x1 = a * np.cos(alpha)
+    y1 = b * np.sin(alpha)
+    x = x1 * np.cos(phi) - y1*np.sin(phi) + x0
+    y = y1 * np.cos(phi) + x1*np.sin(phi) + y0
+    Ellipse_vector = np.array([x,y])
+    return Ellipse_vector
 
 def _Distances_from_center_of_ellipse(theta,Z):
-
+    '''Uses rotated and translated ellipse function on the depth observations.
+    Return the value on all those observations.
+    (If point is on the ellipse, return value of 1 for this point) '''
     # Initializing and identifying variables:
     Distance_Vector = []
     x_c = theta[0]
@@ -95,7 +178,8 @@ def _Distances_from_center_of_ellipse(theta,Z):
     return np.array(Distance_Vector)
 
 def _Initializing_half_Rectangle(theta):
-
+    '''Return vector of points that will act as components of GMM for the rectangle.
+    Return array of [x,y]'''
     x0 = theta[0]
     y0 = theta[1]
     phi = theta[2]
@@ -104,11 +188,11 @@ def _Initializing_half_Rectangle(theta):
 
     if phi > 0 and phi < np.pi or phi < 0 and phi > -np.pi:
         
-        b_a = 7*int(b/(a+b))
-        x1 = -a/2 * np.ones(b_a)
+        b_a = int(10*b/(a+b))
+        x1 = ((np.cos(phi))/(np.absolute(np.cos(phi))))*(-a/2) * np.ones(b_a)
         y1 = np.linspace(-b/2 , b/2 , b_a)
-        x2 = np.linspace(-a/2 , a/2 , 7 -b_a)
-        y2 = -b/2 *  np.ones(7-b_a)
+        x2 = np.linspace(-a/2 , a/2 , 10 -b_a)
+        y2 = -b/2 *  np.ones(10-b_a)
         x3 = np.concatenate((x1,x2) , axis = None)
         y3 = np.concatenate((y1,y2) , axis = None)
         x = x3 * np.cos(phi) - y3 * np.sin(phi) + x0
@@ -141,6 +225,7 @@ class Likelihood():
     
     # Likelihood functions:
     def probability_for_circle(self,theta):
+        '''Return posterior for circle shape for a given theta'''
         
         R = theta[2]
 
@@ -158,7 +243,7 @@ class Likelihood():
     
 
     def probability_for_Rectangle(self,theta):
-
+            '''Return posterior for rectangle shape for a given theta'''
             a = theta[3]
             b = theta[4]
             
@@ -178,7 +263,7 @@ class Likelihood():
 
             
     def probability_for_Ellipse(self,theta):
-
+            '''Return posterior for ellipse shape for a given theta'''
             a = theta[3]
             b = theta[4]
             #Ellipse_vector = _Init_Ellipse(theta)

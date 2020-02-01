@@ -5,7 +5,7 @@ import rospy
 import numpy as np
 from scipy.optimize import differential_evolution
 from tf.transformations import quaternion_from_euler
-from geometric_functions import Likelihood, quaternion_to_euler, New_Ce_array
+from geometric_functions import Likelihood, quaternion_to_euler, New_Ce_array , Ranges_to_xy_plane , Object_height_update
 
 # Msgs:
 from object_detector_ssd_tf_ros.msg import SSD_Outputs
@@ -61,7 +61,7 @@ r = rospy.Rate(7)
 global Robot_Odometry
 
 while not rospy.is_shutdown():
-    r.sleep()
+    #r.sleep()
 
     data = SSD_info
     if data.outputs[0].cls == -1:
@@ -91,12 +91,14 @@ while not rospy.is_shutdown():
         y_min_new = data.outputs[ii].y_min
         y_max_new = data.outputs[ii].y_max
 
+        # If object is too high or too low:
         if y_min_new > 160 or y_max_new < 130:
             continue
 
-
         cls_num = data.outputs[ii].cls
         Theta_Object.height_factor = data.outputs[ii].height_factor
+        if Theta_Object.height_factor == 0:
+            Theta_Object.height_factor = 0.4
         
         # In case the object is not a one that can be stationed in the map:
         if cls_num not in Object_cls_list:
@@ -117,6 +119,7 @@ while not rospy.is_shutdown():
         R_qy = Robot_Pose.pose.orientation.y
         R_qz = Robot_Pose.pose.orientation.z
         R_qw = Robot_Pose.pose.orientation.w
+
         '''
         # Orientation of the robot from the Odometry:
         R_qx = Robot_Odometry.orientation.x
@@ -135,40 +138,22 @@ while not rospy.is_shutdown():
         x_R = Robot_Odometry.position.x
         y_R = Robot_Odometry.position.y
         '''
-        las_points = np.zeros((2*size + 1,2))
+        
         R = np.array(scan_point.ranges)
-
-        # Initializing an inf values:
-        R[np.isinf(R)] = 0
-
-        for i in range (0,size):
-            
-            if R[i] == 0:
-                las_points[i,0] = 100000
-                las_points[i,1] = 100000
-                continue
-            las_points[i,0] = -R[i] * np.cos((size - i) * angle_jumps - np.pi)
-            las_points[i,1] =  R[i] * np.sin((size - i) * angle_jumps - np.pi)
-            
-        for i in range (size,2*size+1):
-            if R[i] == 0:
-                las_points[i,0] = 100000
-                las_points[i,1] = 100000
-                continue
-            las_points[i,0] = R[i] * np.cos((i-size) * angle_jumps)
-            las_points[i,1] = R[i] * np.sin((i-size) * angle_jumps)
-        # Making sure the object is close enogh:
-        Dist_check = np.array(R[angle_min:angle_max])
-        Dist_check = Dist_check[Dist_check != 0]
-        if np.amin(Dist_check) > 1.5:
+        
+        # Transfer the (ranges,angle) poins into (x,y) points:
+        laser_depth_observations = Ranges_to_xy_plane(R,angle_min,angle_max,
+                                        size,angle_jumps)
+        # Not enough measurements or object is too far away:
+        if len(laser_depth_observations) == 2:
             continue
-           
+
         # Round objects:
         if cls_num in A_Round:
             
             print('Found Round shape')
             # Initializing the circle array:
-            circle = np.array((las_points[angle_min:angle_max,:]))
+            circle = np.array((laser_depth_observations[angle_min:angle_max,:]))
 
             bound_r = rospy.get_param('/object_list/o'+str(cls_num)+'/bound_r')
 
@@ -182,13 +167,17 @@ while not rospy.is_shutdown():
             # DE algoritm
             circle_minimized_values = differential_evolution(C_class.probability_for_circle,bounds,
                                                             maxiter = 40,  popsize=10, tol=0.00001)
-
+            object_height = Object_height_update(Theta_Object.height_factor,
+                                                2*circle_minimized_values.x[2],
+                                                0,
+                                                0)
             # Entering the found data:
             v0 = New_Ce_array(circle_minimized_values.x[0],circle_minimized_values.x[1],x_R,y_R,yaw,correction_factor)
             Theta_Object.probabilities = data.outputs[ii].probability_distribution
             Theta_Object.x_center = v0[0]
             Theta_Object.y_center = v0[1]
             Theta_Object.r = circle_minimized_values.x[2]
+            Theta_Object.object_height = object_height
             Theta_Object.a = 0
             Theta_Object.b = 0
             Theta_Object.angle = 0
@@ -205,14 +194,14 @@ while not rospy.is_shutdown():
             print ('Found Rectangle shape')
 
             # Initializing the box array:
-            box = np.array((las_points[angle_min:angle_max,:]))
+            box = np.array((laser_depth_observations[angle_min:angle_max,:]))
 
             bound_a = rospy.get_param('/object_list/o'+str(cls_num)+'/bound_a')
             bound_b = rospy.get_param('/object_list/o'+str(cls_num)+'/bound_b')
             # Bounds for DE algoritm
             bounds_R = [ [np.amin(box[:,0])-0.1 , np.amin([np.amax(box[:,0])+0.1 , 3])] ,
                          [np.amin(box[:,1])-0.1 , np.amin([np.amax(box[:,1])+0.1 , 3])] ,
-                         [-np.pi,-0.05],
+                         [-np.pi,-0.01],
                           bound_a,
                           bound_b ]
 
@@ -222,6 +211,10 @@ while not rospy.is_shutdown():
             rectangle_minimized_values = differential_evolution(R_class.probability_for_Rectangle,bounds_R ,
                                                                 maxiter = 50, popsize=7, tol=0.00001)
             
+            object_height = Object_height_update(Theta_Object.height_factor,
+                                                rectangle_minimized_values.x[3],
+                                                rectangle_minimized_values.x[4],
+                                                rectangle_minimized_values.x[2])
             # Entering the found data:
             Theta_Object.probabilities = data.outputs[ii].probability_distribution
             Theta_Object.x_center , Theta_Object.y_center = New_Ce_array(rectangle_minimized_values.x[0] ,rectangle_minimized_values.x[1],x_R,y_R,yaw,correction_factor)
@@ -230,7 +223,7 @@ while not rospy.is_shutdown():
             Theta_Object.angle = rectangle_minimized_values.x[2] + yaw
             Theta_Object.r = 0
             Theta_Object.cls = cls_num
-            
+            Theta_Object.object_height = object_height
             
             Theta_list.object_list.append(Theta_Object)
             print ('Sending founded Rectangle shape')
@@ -240,22 +233,26 @@ while not rospy.is_shutdown():
             
             print ('Found elliptical shape')
             # Initializing the box array:
-            ellipse = np.array((las_points[angle_min:angle_max,:]))
+            ellipse = np.array((laser_depth_observations[angle_min:angle_max,:]))
 
             bound_a = rospy.get_param('/object_list/o'+str(cls_num)+'/bound_a')
             bound_b = rospy.get_param('/object_list/o'+str(cls_num)+'/bound_b')
             # Bounds for DE algoritm
             bounds_E = [ [np.amin(ellipse[:,0])-0.1 , np.amin([np.amax(ellipse[:,0])+0.1 , 2])] ,
                          [np.amin(ellipse[:,1])-0.1 , np.amin([np.amax(ellipse[:,1])+0.1 , 2])] ,
-                         [-np.pi,-0.05],
+                         [-np.pi,-0.01],
                           bound_a,
                           bound_b ]
 
             E_class = Likelihood(class_number=cls_num , Z=ellipse , SSD_probability=data.outputs[ii].probability_distribution)
             # DE angoritm:
             elliptical_minimized_values = differential_evolution(E_class.probability_for_Ellipse,bounds_E ,
-                                                                    maxiter = 30,  popsize=5, tol=0.00001)
+                                                                    maxiter = 50,  popsize=7, tol=0.00001)
 
+            object_height = Object_height_update(Theta_Object.height_factor,
+                                                2*elliptical_minimized_values.x[3],
+                                                2*elliptical_minimized_values.x[4],
+                                                elliptical_minimized_values.x[2])
             # Entering the found data:
             Theta_Object.probabilities = data.outputs[ii].probability_distribution
             Theta_Object.x_center , Theta_Object.y_center = New_Ce_array(elliptical_minimized_values.x[0] ,elliptical_minimized_values.x[1],x_R,y_R,yaw,correction_factor)
@@ -264,6 +261,7 @@ while not rospy.is_shutdown():
             Theta_Object.angle = elliptical_minimized_values.x[2] + yaw
             Theta_Object.r = 0
             Theta_Object.cls = cls_num
+            Theta_Object.object_height = object_height
             #Theta_Publisher.publish(Theta_Object)
             Theta_list.object_list.append(Theta_Object)
 

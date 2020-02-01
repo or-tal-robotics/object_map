@@ -29,7 +29,7 @@
     </geometry>
   </collision>
   </link>
-
+<!--
    <link name="box">
   <inertial>
     <origin xyz="0 0 0" />
@@ -48,7 +48,12 @@
       <box size="0.3 0.2 0.1" />
     </geometry>
   </collision>
+
   </link>
+
+  <gazebo reference="box">
+    <material>Gazebo/Black</material>
+  </gazebo>
 
   <joint name="base_link_box" type="fixed">
     <parent link="base_link"/>
@@ -56,9 +61,9 @@
     <axis xyz="0 0 0"/>
     <origin xyz="-0.05 0 0.225"/>
   </joint>
-
+-->
   <gazebo reference="base_link">
-    <material>Gazebo/Blue</material>
+    <material>Gazebo/DarkGrey</material>
   </gazebo>
 
   <link name="right_wheel">
@@ -181,7 +186,7 @@
   </joint>
 
   <gazebo reference="back_wheel">
-    <material>Gazebo/White</material>
+    <material>Gazebo/Black</material>
     <mu1>0.000001</mu1>
     <mu2>0.000001</mu2>
   </gazebo>
@@ -210,6 +215,12 @@
       <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6" />
     </inertial>
   </link>
+
+<gazebo reference="camera_link">
+    <material>Gazebo/Black</material>
+    <mu1>0.000001</mu1>
+    <mu2>0.000001</mu2>
+  </gazebo>
 
 <link name="camera_link_2">
     <collision>
@@ -266,7 +277,7 @@
 
 <joint name="camera_joint" type="fixed">
     <axis xyz="0 0 0" />
-    <origin xyz="0.2 0 0.25" rpy="0 0 0"/>
+    <origin xyz="0.2 0 0.175" rpy="0 0 0"/>
     <parent link="base_link"/>
     <child link="camera_link"/>
   </joint>
@@ -379,7 +390,7 @@
  <gazebo reference="hokuyo_link">
     <sensor type="gpu_ray" name="head_hokuyo_sensor">
       <pose>0 0 0 0 0 0</pose>
-      <visualize>true</visualize>
+      <visualize>false</visualize>
       <update_rate>10</update_rate>
       <ray>
         <scan>
@@ -404,6 +415,7 @@
           <mean>0.0</mean>
           <stddev>0.01</stddev>
         </noise>
+
       </ray>
       <plugin name="gazebo_ros_head_hokuyo_controller" filename="libgazebo_ros_gpu_laser.so">
         <topicName>scan</topicName>

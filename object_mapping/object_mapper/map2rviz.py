@@ -51,10 +51,8 @@ while not rospy.is_shutdown():
 
         name = rospy.get_param('/object_list/o'+str(M_data.M[ii].m_i[max_p].cls_num)+'/name')
         
-        height_factor = M_data.M[ii].m_i[max_p].height_factor
-        if height_factor == 0:
-            height_factor = 1
         
+        object_height = M_data.M[ii].m_i[max_p].object_height
         if M_data.M[ii].m_i[max_p].cls_num in A_Round:
 
             # Test for putting a can in the map.
@@ -78,7 +76,7 @@ while not rospy.is_shutdown():
             # Size:        
             marker.scale.x = 2 * M_data.M[ii].m_i[max_p].r
             marker.scale.y = 2 * M_data.M[ii].m_i[max_p].r
-            marker.scale.z = height_factor * marker.scale.x
+            marker.scale.z = object_height
             # Location of the can:
             marker.pose.position.x = M_data.M[ii].m_i[max_p].x_center
             marker.pose.position.y = M_data.M[ii].m_i[max_p].y_center
@@ -142,7 +140,7 @@ while not rospy.is_shutdown():
             # Size:        
             marker.scale.x = M_data.M[ii].m_i[max_p].a
             marker.scale.y = M_data.M[ii].m_i[max_p].b
-            marker.scale.z = height_factor*(np.absolute(marker.scale.x*np.cos(M_data.M[ii].m_i[max_p].angle)) + np.absolute(marker.scale.y*np.sin(M_data.M[ii].m_i[max_p].angle)))
+            marker.scale.z = object_height
             # Location of the TV:
             marker.pose.position.x = M_data.M[ii].m_i[max_p].x_center
             marker.pose.position.y = M_data.M[ii].m_i[max_p].y_center
@@ -200,7 +198,7 @@ while not rospy.is_shutdown():
             # Size:        
             marker.scale.x = 2*M_data.M[ii].m_i[max_p].a
             marker.scale.y = 2*M_data.M[ii].m_i[max_p].b
-            marker.scale.z = 2*(np.absolute(marker.scale.x*np.cos(M_data.M[ii].m_i[max_p].angle)) + np.absolute(marker.scale.y*np.sin(M_data.M[ii].m_i[max_p].angle)))*height_factor
+            marker.scale.z = object_height
             # Location of the TV:
             marker.pose.position.x = M_data.M[ii].m_i[max_p].x_center
             marker.pose.position.y = M_data.M[ii].m_i[max_p].y_center

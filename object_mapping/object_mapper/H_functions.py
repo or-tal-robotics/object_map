@@ -14,6 +14,7 @@ from object_mapping.msg import Single_Class , M_i , M
 A_Round = rospy.get_param('/Array/round')
 
 def q_i(mi,mo):
+    '''Calculating q_i.'''
     global A_Round
     q_i = 0
     for ii in range(0,12):
@@ -31,7 +32,8 @@ def q_i(mi,mo):
     return q_i
 
 def _Making_M_i(mi):
-    
+    '''Initialize Mi msg from Mi class.
+    Return msg from M_i() type.'''
     M_i_list = M_i()
     for i in range(0,12):
         SO = Single_Class()
@@ -43,11 +45,14 @@ def _Making_M_i(mi):
         SO.angle = mi.angle[i]
         SO.cls_num = mi.cls_num[i]
         SO.probability = mi.prob_distribution[i]
+        SO.object_height = mi.object_height[i]
         M_i_list.m_i.append(SO)
+        
     return M_i_list
 
 def making_M(M_class_list):
-
+    '''Making M msg from M class.
+    Reruen msg from M() type.'''
     M_msg_list = M()
     for ii in range (0,len(M_class_list)):
         M_msg_list.M.append(_Making_M_i(M_class_list[ii]))
@@ -55,7 +60,8 @@ def making_M(M_class_list):
     return M_msg_list
 
 def Prob_updater(alpha,P_old,P_new):
-
+    '''Updating probability of an object.
+    Returns updated probability'''
     P_star = (P_old**alpha) * (P_new**(1-alpha))
     P_sum = np.sum(P_star)
     P = P_star / P_sum
@@ -64,7 +70,7 @@ def Prob_updater(alpha,P_old,P_new):
 # Single object class:
 class SO_class():
 
-    def __init__(self,x_center=[],y_center=[],r=[],a=[],b=[],angle=[],cls_num=[],prob_distribution=[]):
+    def __init__(self,x_center=[],y_center=[],r=[],a=[],b=[],angle=[],cls_num=[],prob_distribution=[],object_height = []):
 
         self.x_center = np.array(x_center)
         self.y_center = np.array(y_center)
@@ -74,6 +80,7 @@ class SO_class():
         self.angle = np.array(angle)
         self.cls_num = np.array(cls_num)
         self.prob_distribution = np.array(prob_distribution)
+        self.object_height = np.array(object_height)
 
 
 

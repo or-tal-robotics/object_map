@@ -53,6 +53,7 @@ while not rospy.is_shutdown():
         obj_new.probabilities = data.object_list[ii].probabilities
         obj_new.cls_num = data.object_list[ii].cls
         obj_new.height_factor = data.object_list[ii].height_factor
+        obj_new.object_height = data.object_list[ii].object_height
         new_center = np.array([[data.object_list[ii].x_center,data.object_list[ii].y_center]])
         
         
@@ -142,5 +143,5 @@ while not rospy.is_shutdown():
             print ('Updated an existed object.')
         
         OM_publisher.publish(object_mapped_values)
-    rr.sleep()
+    #rr.sleep()
     

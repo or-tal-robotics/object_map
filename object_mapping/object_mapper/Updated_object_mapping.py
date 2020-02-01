@@ -31,14 +31,16 @@ def M_o_callback(data):
     angle = []
     cls_num = []
     Prb = []
+    object_height = []
     
     # Updating the msg:   
     for jj in range(0,len(data.M_list)):
         
         # Arranging the data for Mo:
         for i in range(0,len(data.M_list[jj].object_list)):
-
+            
             # getting the fresh data
+            object_height.append(data.M_list[jj].object_list[i].object_height)
             x.append(data.M_list[jj].object_list[i].x_center)
             y.append(data.M_list[jj].object_list[i].y_center)
             r.append(data.M_list[jj].object_list[i].r)
@@ -57,11 +59,11 @@ def M_o_callback(data):
 
         # The new object:
         Mo = SO_class(x_center=x,y_center=y,r=r,a=a,b=b,angle=angle,
-                        cls_num=cls_num,prob_distribution=Prb)
+                        cls_num=cls_num,prob_distribution=Prb,object_height=object_height)
         
-        print 'Got new Mo'
+        print ('Got new Mo')
         if len(M_list_class) == 0:
-            print "First Object"
+            print ("First Object")
             M_list_class.append(Mo)
             
             
@@ -74,12 +76,12 @@ def M_o_callback(data):
 
             # New object
             if q[ii] < epsilon:
-                print 'Added an object'
+                print ('Added an object')
                 M_list_class.append(Mo)
                 
             # Updating an object:
             else:
-                print 'Updating an object'
+                print ('Updating an object')
                 alpha = 0.5
 
                 # Updating:
@@ -95,11 +97,12 @@ def M_o_callback(data):
                 M_list_class[ii].a = alpha * M_list_class[ii].a + (1-alpha)*Mo.a
                 M_list_class[ii].b = alpha * M_list_class[ii].b + (1-alpha)*Mo.b
                 M_list_class[ii].angle = alpha * M_list_class[ii].angle + (1-alpha)*Mo.angle
+                M_list_class[ii].object_height = alpha * M_list_class[ii].object_height + (1-alpha)*Mo.object_height
 
     M_msg = making_M(M_list_class)
     OM_publisher.publish(M_msg)
     if len(data.M_list)>0:
-        print "Done"
+        print ("Done")
 
 
 # Initial node:

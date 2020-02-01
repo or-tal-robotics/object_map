@@ -3,7 +3,6 @@
 # Libraries:
 import rospy
 import numpy as np
-import pandas as pd
 
 
 # updating location and sizes:
@@ -13,7 +12,8 @@ def Theta_updater(x_old,x_new,
                 a_old,a_new,
                 b_old,b_new,
                 phi_old,phi_new):
-
+                '''Update exsisting object values.
+                Return updated Mi'''
                 x = (x_old + x_new)/2
                 y = (y_old + y_new)/2
                 r = (r_old + r_new)/2
@@ -26,8 +26,8 @@ def Theta_updater(x_old,x_new,
 
 # Updating the Probabilities of every object with consideration for the old ones:
 def Updated_Probabilities_and_Cls(old_probability,new_probability,new_cls):
-    #global CM
-    #updated_prob = np.multiply(CM[new_cls-1,:],new_probability)
+    '''Update the probability and the class of founded object.
+    Returns [updated probability , the updated class number] '''
     if len(np.array(old_probability)) < 1:
         new_cls = np.argmax(new_probability)+1
         updated_prob = new_probability
@@ -40,11 +40,15 @@ def Updated_Probabilities_and_Cls(old_probability,new_probability,new_cls):
 
 # Calculating the distance between two points:
 def _distance(pt_1, pt_2):
+    '''Calculate distance betwenn two points.
+    Returns distance value'''
     pt_1 = np.array((pt_1[0,0], pt_1[0,1]))
     pt_2 = np.array((pt_2[0], pt_2[1]))
     return np.linalg.norm(pt_1-pt_2)
 
 def closest_node(node, nodes):
+    '''Finding the closest point to a given point.
+    Return [distance , closest point index] '''
     i = 0
     j = 0
     dist = 9999999
@@ -56,6 +60,8 @@ def closest_node(node, nodes):
     return [dist , j]
 
 def Search_Radius(r,a,b):
+    '''Return the maximum value from a,b,r.
+    Fo example, if object is circle, it will return the value of r'''
     return np.amax([r,a,b])
 
 class Object_Map_cls():

@@ -76,7 +76,8 @@ while not rospy.is_shutdown():
             # Location of the can:
             marker.pose.position.x = M_data.object_map[ii].x_center
             marker.pose.position.y = M_data.object_map[ii].y_center
-            marker.pose.position.z = marker.scale.z/2
+            #marker.pose.position.z = marker.scale.z/2
+            marker.scale.z = M_data.object_map[ii].object_height
             # Name:
             marker.ns = name + str(ii)
             list_marker.markers.append(marker)
@@ -137,8 +138,9 @@ while not rospy.is_shutdown():
             marker.scale.x = M_data.object_map[ii].a
             marker.scale.y = M_data.object_map[ii].b
             angle_O = M_data.object_map[ii].angle
-            marker.scale.z = np.absolute(height_factor * marker.scale.x * np.sin(angle_O))
-            
+            #marker.scale.z = np.absolute(height_factor * marker.scale.x * np.sin(angle_O))
+            marker.scale.z = M_data.object_map[ii].object_height
+
             # Location of the TV:
             marker.pose.position.x = M_data.object_map[ii].x_center
             marker.pose.position.y = M_data.object_map[ii].y_center
@@ -197,10 +199,12 @@ while not rospy.is_shutdown():
             marker.scale.x = 2*M_data.object_map[ii].a
             marker.scale.y = 2*M_data.object_map[ii].b
             
-            angle_O = M_data.object_map[ii].angle
-            marker.scale.z = np.absolute(height_factor * marker.scale.x * np.sin(angle_O))
+            #angle_O = M_data.object_map[ii].angle
+            #marker.scale.z = np.absolute(height_factor * marker.scale.x * np.sin(angle_O))
+            marker.scale.z = M_data.object_map[ii].object_height
+
             if M_data.object_map[ii].cls_num == 15:
-                marker.scale.z *= 2.5
+                marker.scale.z *= 1.4
             # Location of the TV:
             marker.pose.position.x = M_data.object_map[ii].x_center
             marker.pose.position.y = M_data.object_map[ii].y_center
