@@ -17,9 +17,16 @@ The following python packges are required:
 * hector_mapping (http://wiki.ros.org/hector_mapping)
 
 ## Runing
-For a demo simulation with use:
+For a demo simulation use:
 
 
 ```
 roslaunch gazebo_demo demo.launch
+```
+
+For a demo simulation working with the "Bhattacharyya coefficient" method of updating the map use:
+
+
+```
+roslaunch gazebo_demo Test.launch
 ```
