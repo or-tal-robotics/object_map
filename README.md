@@ -1,6 +1,7 @@
 # object_map
 By [Or Tslil](https://github.com/ortslil64), [Amit Elbaz](https://github.com/elbazam)
-[Paper link:](https://www.researchgate.net/publication/342735084_Representing_and_updating_objects'_identities_in_semantic_SLAM)
+
+[Paper link](https://www.researchgate.net/publication/342735084_Representing_and_updating_objects'_identities_in_semantic_SLAM)
 
 ROS implementation of online semantic SLAM, based on the not yet published paper - "Representing and updating object identities in semantic SLAM". The object detection node is based on SSD300 architecture and forked from https://github.com/balancap/SSD-Tensorflow.
 ## Example - Gazebo simulation
