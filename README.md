@@ -23,27 +23,22 @@ The following python packges are required:
 ```bash
 git clone https://github.com/or-tal-robotics/object_map.git
 ```
-1. Build:
+2. Build:
 ```bash
 catkin_make
 ```
-1. Install SSD image detector for ROS:
+3. Install SSD image detector for ROS:
 ```bash
 pip install -e object_detector_ssd_tf_ros
 ```
-1. Unzip SSD weights in `object_map/object_detector_ssd_tf_ros/ssd/model/ssd_300_vgg.ckpt.zip`
+4. Unzip SSD weights in `object_map/object_detector_ssd_tf_ros/ssd/model/ssd_300_vgg.ckpt.zip`
 
 ## Runing
-For a demo simulation use:
-
-
+* For a demo simulation use:
 ```bash
 roslaunch gazebo_demo demo.launch
 ```
-
-For a demo simulation working with the "Bhattacharyya coefficient" method of updating the map use:
-
-
+* For a demo simulation working with the "Bhattacharyya coefficient" method of updating the map use:
 ```bash
 roslaunch gazebo_demo Test.launch
 ```
