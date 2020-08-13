@@ -17,18 +17,33 @@ The following python packges are required:
 * openCV
 * TensorFlow 1.1* (GPU version)
 * hector_mapping (http://wiki.ros.org/hector_mapping)
+* currently tested in ros melodic in ubuntu 18.04
+## Setup
+1. Download repository to your catkin workspace:
+```bash
+git clone https://github.com/or-tal-robotics/object_map.git
+```
+1. Build:
+```bash
+catkin_make
+```
+1. Install SSD image detector for ROS:
+```bash
+pip install -e object_detector_ssd_tf_ros
+```
+1. Unzip SSD weights in `object_map/object_detector_ssd_tf_ros/ssd/model/ssd_300_vgg.ckpt.zip`
 
 ## Runing
 For a demo simulation use:
 
 
-```
+```bash
 roslaunch gazebo_demo demo.launch
 ```
 
 For a demo simulation working with the "Bhattacharyya coefficient" method of updating the map use:
 
 
-```
+```bash
 roslaunch gazebo_demo Test.launch
 ```
