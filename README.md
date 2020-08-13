@@ -8,6 +8,8 @@ ROS implementation of online semantic SLAM, based on the not yet published paper
 [![Watch the video](https://img.youtube.com/vi/-H25q_Vcol8/default.jpg)](https://youtu.be/-H25q_Vcol8)
 ## Example - Experiment
 [![Watch the video](https://img.youtube.com/vi/mQHh478gTg8/default.jpg)](https://youtu.be/mQHh478gTg8)
+## Pipelines
+![demo](https://github.com/or-tal-robotics/object_map/blob/master/images/pipelines.png?raw=true "General piplines")
 ## Dependencies
 The following python packges are required:
 * python 2.*
